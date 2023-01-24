@@ -175,13 +175,13 @@ func New(r string, c Ceiling, min ...Ceiling) *Limiter {
 	if len(min) > 0 {
 		m = min[0]
 	}
-	l, _ := newConfig(r, c, 2, 1, m, "30s")
+	l, _ := NewConfig(r, c, 2, 1, m, "30s")
 	return l
 }
 
 //limitUnmarshaler := grmgr.NewConfig("unmarshaler", *concurrent*2, 2,1,3,"1m")
 
-func newConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*Limiter, error) {
+func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*Limiter, error) {
 
 	hold, err := time.ParseDuration(h)
 	if err != nil {

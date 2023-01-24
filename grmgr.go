@@ -515,10 +515,7 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 			// TODO: Done should be in a separate select. If a request and Done occur simultaneously then go will randomly pick one.
 			// separating them means we have control. Is that the solution. Ideally we should control outside of uuid func().
 			logAlert("Shutdown.")
-			return
-
 		}
-
 	}
 }
 
