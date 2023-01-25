@@ -1,5 +1,5 @@
-//go:build !withdb
-// +build !withdb
+//go:build !withstats
+// +build !withstats
 
 package grmgr
 
