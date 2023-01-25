@@ -1,5 +1,5 @@
 # grmgr
-GoRoutine ManaGeR controls the number of concurrent instances of a goroutine. 
+GoRoutine ManaGeR enables you to control the number of concurrent goroutines
 
 1. Start a grmgr service users various channels to serialises access to shared data
 ```
@@ -13,13 +13,21 @@ GoRoutine ManaGeR controls the number of concurrent instances of a goroutine.
 ```
 	limiterDP := grmgr.New("dp", *parallel)
 ```
-3. Block until grmgr notifies you that you can now instantiate a goroutine
+3. User the following code to block until grmgr notifies you that you can now instantiate a goroutine
 
 ```	
 	limiterDP.Ask()
 	<-limiterDP.RespCh()
 ```
-4. When nolonger required unregister the limiter using:
+4  Instantiate a goroutine passing the limiter as an argument
+
+	go Propagate(ctx, limiterDP, &dpWg, u.PKey, ty, has11)
+
+5. In the groutine issue the following code to notify grmgr service that the goroutine has termintaed
+```
+	defer limiterDP.EndR()
+```
+6. When nolonger required unregister the limiter using:
 ```
 	limiterDP.Unregister()
 ```
@@ -27,8 +35,24 @@ GoRoutine ManaGeR controls the number of concurrent instances of a goroutine.
 Example code illustrating all four steps:
 
 ```
+	//
+	// start services
+	//
+	wpEnd.Add(3)
+	wpStart.Add(3)
+	//grCfg := grmgr.Config{"dbname": "default", "table": "runstats", "runid": runid}
+	grCfg := grmgr.Config{"runid": runid}
+	go grmgr.PowerOn(ctx, &wpStart, &wpEnd, grCfg) // concurrent goroutine manager service
+	go errlog.PowerOn(ctx, &wpStart, &wpEnd)       // error logging service
+	//go anmgr.PowerOn(ctx, &wpStart, &wpEnd)        // attach node service
+	go monitor.PowerOn(ctx, &wpStart, &wpEnd) // repository of system statistics service
+	wpStart.Wait()
 	// blocking call..
-	err := ptx.ExecuteByFunc(func(ch_ interface{}) error {
+	
+	...
+		limiterDP := grmgr.New("dp", *parallel)
+		
+		err := ptx.ExecuteByFunc(func(ch_ interface{}) error {
 
 		ch := ch_.(chan []UnprocRec)
 		var dpWg sync.WaitGroup
