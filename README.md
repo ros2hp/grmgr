@@ -1,7 +1,8 @@
 # grmgr
-GoRoutine ManaGeR, grmgr, enables you to place a ceiling (called a `limiter`) on the number of concurrent runtime instances of a goroutines. Any number of limiters can be created.
+GoRoutine ManaGeR, grmgr, enables you to place a ceiling, using a `limiter` object, on the number of concurrent instances of a goroutine. Any number of limiters can be created.
 
 grmgr comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
+grmgr without reporting of metadata is sufficient for all cases outside of grmgr development.
 
 For example to limit the number of concurrent `processDP` goroutines to no more than 10.
 
@@ -9,7 +10,7 @@ For example to limit the number of concurrent `processDP` goroutines to no more 
 		// start grmgr service
 		go grmgr.PowerOn(ctx, wpStart, wpEnd) 
 		
-		// create limiter for DP process setting ceiling to 10.
+		// create a limiter for DP process setting the ceiling to 10.
 		limiterDP := grmgr.New("dp", 10)
 		
 		for node := range ch {
@@ -29,7 +30,6 @@ For example to limit the number of concurrent `processDP` goroutines to no more 
 			. . .
 		}
 ```
-
 
 One which reports in near realtime on the status of each limiter and one that does not.
 
