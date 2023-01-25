@@ -103,6 +103,10 @@ func (l *Limiter) Unregister() {
 	unRegisterCh <- l.r
 }
 
+func (l *Limiter) Delete() {
+	unRegisterCh <- l.r
+}
+
 func (l Limiter) RespCh() respCh {
 	return l.ch
 }
