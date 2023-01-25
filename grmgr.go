@@ -118,6 +118,11 @@ func (l Limiter) Down() {
 	throttleDownCh <- l.r
 }
 
+func (l Limiter) Control() {
+	rAskCh <- l.r
+	<-l.ch
+}
+
 type rLimiterMap map[Routine]*Limiter
 
 var (
