@@ -1,5 +1,5 @@
 # grmgr
-GoRoutine ManaGeR enables you to control the number of concurrent goroutines
+GoRoutine ManaGeR, grmgr, enables you to place a ceiling on the number of concurrent goroutines.
 
 1. Start a grmgr service users various channels to serialises access to shared data
 ```
