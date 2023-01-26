@@ -1,5 +1,5 @@
 # grmgr
-Whever there is an opportunity to instantiate an unknown number of goroutines, typically in a for-loop, **_grmgr_** (GoRoutine ManaGeR) can be used to constrain the number of concurrent goroutines to a fixed and constant number until it finishes. 
+Whever there is an opportunity to instantiate an unknown number of goroutines, typically in a for-loop, **_grmgr_** (GoRoutine ManaGeR) can be used to constrain the number of concurrent goroutines to a fixed and constant number until the loop is exited. 
 
 In the example below we have a typical scenario where a stream of potentially thousands of nodes is read from a channel. Each node is passed to a goroutine, __processDP()__.
 
@@ -28,13 +28,15 @@ So before using  **_grmgr_**  you must start the service using:
  		go grmgr.PowerOn(ctx, wpStart, wpEnd) 
 ```
 
-Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started started and shutdown via the context ctx.
+Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started  and shutdown via the context ctx.
 
 The contents of method Control() shows the communication with the **_grmgr_** service. Please review the code if you want to understand more of the details.
 
 ```
-	rAskCh <- l.r
-	<-l.ch
+	func (l Limiter) Control() {
+		rAskCh <- l.r
+		<-l.ch
+	}
 ```
  
 When a Limiter is nolonger needed it should be deleted:
@@ -53,7 +55,7 @@ which communicates to **_grmgr_** when the goroutine has finished.
  **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
  **_grmgr_** without reporting is recommended for all use cases outside of grmgr development.
 
-The following code snippet illustrates a complete end-to-end use of the grmgr service.
+The following code snippet illustrates a complete end-to-end use of the **_grmgr_** service.
 
 ```
 		// create a context
@@ -75,7 +77,7 @@ The following code snippet illustrates a complete end-to-end use of the grmgr se
 			
 			go processDP(limiterDP, node)
 		}
-		// wait for DP goroutines to finish
+		// wait for the last of the DP goroutines to finish
 		limiterDP.Wait()
 		
 		// free up limiter
@@ -83,14 +85,7 @@ The following code snippet illustrates a complete end-to-end use of the grmgr se
 		
 		. . .
 		
-		func processDP(l *grmgr.Limiter, node Node) {
-			
-			// signal to grmgr service that a goroutine has finished
-			defer l.EndR()
-			. . .
-		}
-		
-		// shudown grmgr service
+		// shudown grmgr service (and all other services that use the context)
 		cancel()
 		
 		
