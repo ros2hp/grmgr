@@ -1,7 +1,7 @@
 # grmgr
 Whever there is an opportunity to instantiate an unknown number of goroutines, typically in a for-loop, **_grmgr_** (GoRoutine ManaGeR) can be used to constrain the number of concurrent goroutines to a fixed and constant number until it finishes. 
 
-In the example below we have such a typical scenario where a stream of potentially thousands of nodes is read from a channel. Each node is passed to a goroutine, processDP().
+In the example below we have a typical scenario where a stream of potentially thousands of nodes is read from a channel. Each node is passed to a goroutine, processDP().
 
 Rather than instantiate thousands of concurrent goroutintes the developer can create a  **_grmgr_** Limiter, specifying a ceiling value, and use the Control() method in the for-loop to constrain the number of concurrent goroutines.
 
@@ -17,11 +17,23 @@ Rather than instantiate thousands of concurrent goroutintes the developer can cr
 		}
 		limiterDP.Wait()
 ```
-The Control() method will block when the number of concurrent groutines, processsDP in this case, equals the ceiling value of the Limiter. When a goroutine finishes Control() will be unblocked.
-In this way **_grmgr_** can maintain a fixed and constant number of concurrent goroutines. The Limiter also comes with a Wait(), which emulates sync.Wait(), and will wait until the remaining goroutines finish.
+The Control() method will block when the number of concurrent groutines, __processsDP__ in this case, equals the ceiling value of the Limiter. When a goroutine finishes Control() will be unblocked.
+In this way **_grmgr_** can maintain a fixed and constant number of concurrent goroutines, equal to the ceiling value. The Limiter also comes with a Wait(), which emulates sync.Wait(), and in this case will wait until the last of the goroutines finish.
 
- **_grmgr_** runs as a service, which is a groutine that runs for the duration of the program. The service serialises access to the shared data of each of the active Limiters.
+To safeguards the state of each Limiter, **_grmgr_** runs as a service, meaning  **_grmgr_** runs as a goroutine and communicates only via channels (encapsulated in the methos) so access to shared data is serialised and therefore safe.
+So before using  **_grmgr_**  you must start the service using:
+
+```
+ 		go grmgr.PowerOn(ctx, wpStart, wpEnd) 
+```
+Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service has been started and shutdown via the context ctx. The  **_grmgr_** handles an unlimited number of Limters.
  
+When the Limiter is nolonger needed it should be deleted:
+
+```
+	limiterDP.Delete()
+```
+
  **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
 grmgr without reporting of metadata is sufficient for all cases outside of grmgr development.
 
