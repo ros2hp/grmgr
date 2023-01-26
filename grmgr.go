@@ -221,7 +221,6 @@ func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*L
 	}
 
 	l := Limiter{c: c, maxc: c, minc: min, up: up, down: down, r: Routine(r), or: Routine(r), ch: make(chan struct{}), on: true, hold: hold}
-	l.wait = make(chan struct{}, 1)
 	registerCh <- &l
 	logAlert(fmt.Sprintf("New Routine %q  Ceiling: %d [min: %d, down: %d, up: %d, hold: %s]", r, c, min, down, up, h))
 	return &l, nil
