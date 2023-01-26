@@ -20,7 +20,8 @@ Rather than instantiate thousands of concurrent goroutintes the developer can cr
 The Control() method will block when the number of concurrent groutines exceeds the ceiling value of the Limiter. When one of the goroutine finishes Control() will be unblocked.
 In this way **_grmgr_** can maintain a fixed and constant number of concurrent goroutines, equal to the ceiling value. The Limiter also comes with a Wait(), which emulates sync.Wait(), and in this case will wait until the last of the goroutines finish.
 
-To safeguards the state of each Limiter, **_grmgr_** runs as a service, meaning  **_grmgr_** runs as a goroutine and communicates only via channels, encapsulated in each of the **_grmgr_** methods. In this way access to shared data is serialised and **_grmgr_** is concurrency safe.
+To safeguards the state of each Limiter, **_grmgr_** runs as a service, meaning  **_grmgr_** runs as a goroutine and communicates only via channels, which is encapsulated in each of the **_grmgr_** methods. In this way access to shared data is serialised and **_grmgr_** is concurrency safe.
+
 So before using  **_grmgr_**  you must start the service using:
 
 ```
@@ -28,6 +29,13 @@ So before using  **_grmgr_**  you must start the service using:
 ```
 
 Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started started and shutdown via the context ctx.
+
+The contents of method Control() shows the communication with the **_grmgr_** service. Please review the code if you want to understand more of the details.
+
+```
+	rAskCh <- l.r
+	<-l.ch
+```
  
 When a Limiter is nolonger needed it should be deleted:
 
@@ -43,9 +51,9 @@ A goroutine communicates with **_grmgr_** via a Limiter that is passed in as an 
 which communicates to **_grmgr_** when the goroutine has finished.
 
  **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
-grmgr without reporting of metadata is sufficient for all cases outside of grmgr development.
+ **_grmgr_** without reporting is recommended for all use cases outside of grmgr development.
 
-For example to limit the number of concurrent `processDP` goroutines to no more than 10.
+The following code snippet illustrates a complete end-to-end use of the grmgr service.
 
 ```
 		// create a context
