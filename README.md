@@ -1,12 +1,12 @@
 # grmgr
-GoRoutine ManaGeR, **_grmgr_**, will maintain a fixed number of concurrent instances of a particular goroutine when it is instantiating in a for-loop.
+GoRoutine ManaGeR, **_grmgr_**, will maintain a fixed number of concurrent goroutine when it is instantiated in a for-loop.
 
 In the example below a stream of potentially thousands of nodes is read from a channel. Each node is passed into processDP which is executed as a goroutine.
 
-A limiterDP is created with a ceiling value fo 10 which will maintain the number of concurrent goroutines at between 9 and 10 at any moment in time, until the last 10 nodes is reached.
+A grmgr limiter (limiterDP) is created with a value of 10, which sets the ceiling for the number of concurrent goroutines.
 
-The Control() method will block when the number of concurrent groutines exceeeds 10. It will be unblocked when one of the groutines finishes. 
-In this way it can maintain the number of concurrent groutines at the ceiling value.
+The Control() method will block when the number of concurrent groutines reaching the ceiling value. It will be unblocked when one of the groutines finishes. 
+In this way **_grmgr_** will maintain the number of concurrent groutines at the ceiling value.
 
 ```
 
@@ -14,17 +14,14 @@ In this way it can maintain the number of concurrent groutines at the ceiling va
 		
 		for node := range ch {
 	
-			limiterDP.Control()
+			limiterDP.Control()  // blocking call
 			
 			go processDP(limiterDP, node)
 		}
 		limiterDP.Wait()
 ```
-
-**_grmgr_** will maintain the number of concurrent goroutines to between the ceiling and ceiling-1 at all times until they wind down.
-
-
-
+ **_grmgr_** runs as a service, which is a groutine that runs for the duration of the program. The service serialises access to the shared data of each of the active Limiters.
+ 
  **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
 grmgr without reporting of metadata is sufficient for all cases outside of grmgr development.
 
