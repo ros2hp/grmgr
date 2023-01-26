@@ -1,12 +1,9 @@
 # grmgr
-GoRoutine ManaGeR, **_grmgr_**, will maintain a fixed number of concurrent goroutine when it is instantiated in a for-loop.
+Whever there is an opportunity to instantiate an unknown number of goroutines, typically in a for-loop, **_grmgr_** (GoRoutine ManaGeR) can be used to constrain the number of concurrent goroutines to a fixed and constant number until it finishes. 
 
-In the example below a stream of potentially thousands of nodes is read from a channel. Each node is passed into processDP which is executed as a goroutine.
+In the example below we have such a typical scenario where a stream of potentially thousands of nodes is read from a channel. Each node is passed to a goroutine, processDP().
 
-A grmgr limiter (limiterDP) is created with a value of 10, which sets the ceiling for the number of concurrent goroutines.
-
-The Control() method will block when the number of concurrent groutines reaching the ceiling value. It will be unblocked when one of the groutines finishes. 
-In this way **_grmgr_** will maintain the number of concurrent groutines at the ceiling value.
+Rather than instantiate thousands of concurrent goroutintes the developer can create a  **_grmgr_** Limiter, specifying a ceiling value, and use the Control() method in the for-loop to constrain the number of concurrent goroutines.
 
 ```
 
@@ -20,6 +17,9 @@ In this way **_grmgr_** will maintain the number of concurrent groutines at the 
 		}
 		limiterDP.Wait()
 ```
+The Control() method will block when the number of concurrent groutines, processsDP in this case, equals the ceiling value of the Limiter. When a goroutine finishes Control() will be unblocked.
+In this way **_grmgr_** can maintain a fixed and constant number of concurrent goroutines. The Limiter also comes with a Wait(), which emulates sync.Wait(), and will wait until the remaining goroutines finish.
+
  **_grmgr_** runs as a service, which is a groutine that runs for the duration of the program. The service serialises access to the shared data of each of the active Limiters.
  
  **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
