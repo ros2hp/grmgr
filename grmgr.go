@@ -85,6 +85,8 @@ type Limiter struct {
 	//
 	ch respCh
 	on bool // send Wait response
+	//
+	wg sync.WaitGroup
 }
 
 func (l *Limiter) Ask() {
@@ -99,6 +101,10 @@ func (l *Limiter) EndR() {
 	EndCh <- l.r
 }
 
+func (l *Limiter) Done() {
+	EndCh <- l.r
+}
+
 func (l *Limiter) Unregister() {
 	unRegisterCh <- l.r
 }
@@ -110,6 +116,21 @@ func (l *Limiter) Delete() {
 func (l Limiter) RespCh() respCh {
 	return l.ch
 }
+
+func (l Limiter) Control() {
+	rAskCh <- l.r
+	<-l.ch
+}
+
+// Wait for all groutine to finish i.e rCnt[l.r] == 0
+func (l *Limiter) Wait() {
+	l.wg.Wait()
+}
+
+func (l Limiter) Valve() {
+	l.Control()
+}
+
 func (l Limiter) Routine() Routine {
 	return l.r
 }
@@ -120,11 +141,6 @@ func (l Limiter) Up() {
 
 func (l Limiter) Down() {
 	throttleDownCh <- l.r
-}
-
-func (l Limiter) Control() {
-	rAskCh <- l.r
-	<-l.ch
 }
 
 type rLimiterMap map[Routine]*Limiter
@@ -205,6 +221,7 @@ func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*L
 	}
 
 	l := Limiter{c: c, maxc: c, minc: min, up: up, down: down, r: Routine(r), or: Routine(r), ch: make(chan struct{}), on: true, hold: hold}
+	l.wait = make(chan struct{}, 1)
 	registerCh <- &l
 	logAlert(fmt.Sprintf("New Routine %q  Ceiling: %d [min: %d, down: %d, up: %d, hold: %s]", r, c, min, down, up, h))
 	return &l, nil
@@ -375,10 +392,11 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 		case r = <-EndCh:
 
 			rCnt[r] -= 1
+			rLimit[r].wg.Done()
 			//logDebug(fmt.Sprintf("EndCh for %s. #concurrent count: %d", r, rCnt[r]))
 
-			if b, ok := rWait[r]; ok {
-				if b > 0 && rCnt[r] < rLimit[r].c {
+			if w, ok := rWait[r]; ok {
+				if w > 0 && rCnt[r] < rLimit[r].c {
 					// Send ack to waiting routine
 					rLimit[r].ch <- struct{}{}
 					rCnt[r] += 1
@@ -387,6 +405,8 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 			}
 
 		case r = <-rAskCh:
+
+			rLimit[r].wg.Add(1)
 
 			if rCnt[r] < rLimit[r].c {
 				// has ASKed
