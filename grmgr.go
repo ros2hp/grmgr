@@ -41,21 +41,6 @@ func (t throttle_) String() {}
 
 var Control throttle_
 
-/////////////////////////////////////
-//
-// register gRoutine start
-//
-//var StartCh = make(chan Routine, 1)
-
-// count of the number of concurrent instances of a routine. This varies between 0 and ceiling (max concurrency)
-type rCntMap map[Routine]int
-
-var rCnt rCntMap
-
-type rWaitMap map[Routine]int
-
-var rWait rWaitMap
-
 // Channels
 var (
 	EndCh          = make(chan Routine, 1)
@@ -86,7 +71,9 @@ type Limiter struct {
 	ch respCh
 	on bool // send Wait response
 	//
-	wg sync.WaitGroup
+	wg    sync.WaitGroup
+	rCnt  int // replace rCnt
+	rWait int // replace rWait
 }
 
 func (l *Limiter) Ask() {
@@ -315,9 +302,7 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 		}
 	}
 
-	rCnt = make(rCntMap)
 	rLimit = make(rLimiterMap)
-	rWait = make(rWaitMap)
 	csnap := make(map[string][]int)  //cumlative snapshots
 	csnap_ := make(map[string][]int) //shadow copy of csnap used by reporting system
 
@@ -385,36 +370,41 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 			}
 
 			rLimit[l.r] = l
-			rCnt[l.r] = 0
-			rWait[l.r] = 0
 
 		case r = <-EndCh:
 
-			rCnt[r] -= 1
-			rLimit[r].wg.Done()
-			//logDebug(fmt.Sprintf("EndCh for %s. #concurrent count: %d", r, rCnt[r]))
+			if l, ok := rLimit[r]; ok {
+				l.wg.Done()
+				l.rCnt--
 
-			if w, ok := rWait[r]; ok {
-				if w > 0 && rCnt[r] < rLimit[r].c {
+				if l.rWait > 0 && l.rCnt < l.c {
 					// Send ack to waiting routine
-					rLimit[r].ch <- struct{}{}
-					rCnt[r] += 1
-					rWait[r] -= 1
+					l.ch <- struct{}{}
+					l.rCnt++
+					l.rWait--
 				}
+
+			} else {
+				panic(fmt.Errorf("expected limiter %s in rLimit got nil", r))
 			}
 
 		case r = <-rAskCh:
 
-			rLimit[r].wg.Add(1)
+			if l, ok := rLimit[r]; ok {
+				l.wg.Add(1)
 
-			if rCnt[r] < rLimit[r].c {
-				// has ASKed
-				rLimit[r].ch <- struct{}{} // proceed to run gr
-				rCnt[r] += 1
-				logDebug(fmt.Sprintf("has ASKed. Under cnt limit. SEnt ACK on routine channel..for %s  cnt: %d Limit: %d", r, rCnt[r], rLimit[r].c))
+				if l.rCnt < l.c {
+					// has ASKed
+					l.ch <- struct{}{} // proceed to run gr
+					l.rCnt++
+					logDebug(fmt.Sprintf("has ASKed. Under cnt limit. SEnt ACK on routine channel..for %s  cnt: %d Limit: %d", r, l.rCnt, l.c))
+				} else {
+					logDebug(fmt.Sprintf("has ASKed %s. Cnt [%d] is above limit [%d]. Mark %s as waiting", r, l.rCnt, l.c))
+					l.rWait++ // log routine as waiting to proceed
+				}
+
 			} else {
-				logDebug(fmt.Sprintf("has ASKed %s. Cnt [%d] is above limit [%d]. Mark %s as waiting", r, rCnt[r], rLimit[r].c))
-				rWait[r] += 1 // log routine as waiting to proceed
+				panic(fmt.Errorf("expected limiter %s in rLimit got nil", r))
 			}
 
 		case r = <-throttleDownCh:
@@ -494,8 +484,8 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 			rsnap += snapInterval
 			//rsnap += snapInterval
 			// cumulate rCnt(one result per gr) into csnap (history)
-			for k, v := range rCnt {
-				csnap[k] = append(csnap[k], v)
+			for k, v := range rLimit {
+				csnap[k] = append(csnap[k], v.rCnt)
 			}
 			// save to db every snapReport seconds (default: 20s)
 			if rsnap == snapReportInterval {
@@ -520,8 +510,6 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 		case r = <-unRegisterCh:
 
 			delete(rLimit, r)
-			delete(rCnt, r)
-			delete(rWait, r)
 			delete(csnap, r)
 			logAlert(fmt.Sprintf("Unregister %s", r))
 
@@ -530,17 +518,11 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 			logAlert("Waiting for internal snap service to shutdown...")
 			wgSnap.Wait()
 			logAlert("Internal snap service shutdown")
-			logAlert(fmt.Sprintf("Number of map entries not deleted: %d %d %d ", len(rLimit), len(rCnt), len(rWait)))
+			logAlert(fmt.Sprintf("Number of map entries not deleted: %d ", len(rLimit)))
 			for k, _ := range rLimit {
 				logAlert(fmt.Sprintf("rLimit Map Entry: %s", k))
 			}
-			for k, _ := range rCnt {
-				logAlert(fmt.Sprintf("rCnt Map Entry: %s", k))
-			}
-			for k, _ := range rWait {
-				logAlert(fmt.Sprintf("rWait Map Entry: %s", k))
-			}
-			// TODO: Done should be in a separate select. If a request and Done occur simultaneously then go will randomly pick one.
+			// // TODO: Done should be in a separate select. If a request and Done occur simultaneously then go will randomly pick one.
 			// separating them means we have control. Is that the solution. Ideally we should control outside of uuid func().
 			logAlert("Shutdown.")
 			return
