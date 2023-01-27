@@ -17,7 +17,7 @@ Rather than instantiate thousands of concurrent goroutintes the developer can cr
 		}
 		limiterDP.Wait()
 ```
-The Control() method will block when the number of concurrent groutines exceeds the ceiling value of the Limiter. When one of the goroutine finishes Control() will be unblocked.
+The Control() method will block when the number of concurrent groutines exceeds the ceiling value of the Limiter. When one of the goroutines finish Control() will be immedidately unblocked.
 In this way **_grmgr_** can maintain a fixed number of concurrent goroutines, equal to the ceiling value. The Limiter also comes with a Wait(), which emulates sync.Wait(), and in this case will wait until the last of the goroutines finish.
 
 To safeguards the state of each Limiter, **_grmgr_** runs as a service, meaning  **_grmgr_** runs as a goroutine and communicates only via channels, which is encapsulated in each of the __Limiter__ methods. In this way access to shared data is serialised and **_grmgr_** is made concurrency safe.
@@ -30,7 +30,7 @@ So before using  **_grmgr_**  you must start the service using:
 
 Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started  and shutdown via the context ctx.
 
-The contents of method Control() shows the communication with the **_grmgr_** service. Please review the code if you want to understand more of the details.
+The contents of method Control() illustrates the communication with the **_grmgr_** service. Please review the code if you want to understand more of the details.
 
 ```
 	func (l Limiter) Control() {
@@ -45,7 +45,7 @@ When a Limiter is nolonger needed it should be deleted:
 	limiterDP.Delete()
 ```
 
-A goroutine that is under the control of **_grmgr_** communicates with grmgr via a Limiter that is passed in as an argument. The only communication necessary is:
+A goroutine that is under the control of **_grmgr_** communicates with grmgr via a Limiter that is passed in as an argument. The only communication is:
 
 ```
 	defer limiterDP.Done()
