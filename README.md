@@ -1,10 +1,7 @@
 # grmgr
-Wherever there is an opportunity to instantiate a large number of goroutines, typically in a for-loop, **_grmgr_** (GoRoutine ManaGeR) can be used to constrain the number of concurrent goroutines to a fixed and constant number until the loop is exited. 
+Wherever there is an opportunity to instantiate a large number of goroutines, typically in a for-loop, **_grmgr_** (GoRoutine ManaGeR) can be used to constrain the number of concurrent goroutines to a fixed number until the loop is exited. 
 
 In the example below we have a typical scenario where a stream of potentially thousands of nodes is read from a channel. Each node is passed to a goroutine, __processDP()__.
-
-Rather than instantiate thousands of concurrent goroutintes the developer can create a  **_grmgr_** Limiter, specifying a ceiling value, and use the Control() method in the for-loop to constrain the number of concurrent goroutines instantiated.
-
 ```
 
 		limiterDP := grmgr.New("dp", 10)
@@ -17,6 +14,8 @@ Rather than instantiate thousands of concurrent goroutintes the developer can cr
 		}
 		limiterDP.Wait()
 ```
+Rather than instantiate thousands of concurrent goroutintes the developer creates a **_grmgr_** Limiter, specifying a ceiling value, and use the Control() method in the for-loop to constrain the number of concurrent goroutines instantiated.
+
 The Control() method will block when the number of concurrent groutines exceeds the ceiling value of the Limiter. When one of the goroutines finish Control() will be immedidately unblocked.
 In this way **_grmgr_** can maintain a fixed number of concurrent goroutines, equal to the ceiling value. The Limiter also comes with a Wait(), which emulates sync.Wait(), and in this case will wait until the last of the goroutines finish.
 
@@ -45,12 +44,24 @@ When a Limiter is nolonger needed it should be deleted:
 	limiterDP.Delete()
 ```
 
-A goroutine that is under the control of **_grmgr_** communicates with grmgr via a Limiter that is passed in as an argument. The only communication is:
+A goroutine that is under the control of **_grmgr_** accepts a Limiter as an argument. Execute the __Done()__ method when the goroutine is finished.
 
 ```
 	defer limiterDP.Done()
 ```
-which informs **_grmgr_** the goroutine has finished.
+
+To configure a logger for __grmgr__ use the following:
+```
+	grmgr.SetLogger(<logger>, <log level>) 
+```
+Available log levels are:
+```
+const (
+	Alert LogLvl = iota
+	Debug
+	NoLog
+)
+```
 
  **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
  **_grmgr_** without reporting is recommended for all use cases outside of grmgr development.
@@ -91,7 +102,32 @@ The following code snippet illustrates a complete end-to-end use of the **_grmgr
 		
 ```
 
-## In Development
+## Limiter Throttle
+
+To configure a non-default throttle for a Limiter use NewConfig()
+```
+// NewConfig - configure a Limiter with non-default throttle settings
+// r : limiter name
+// c : ceiling value (also the maximum value for the throttle)
+// down : adjust current ceiling down by specified value
+// up :   adjust current ceiling up by specified value
+// min : minimum value for ceiling
+// h : hold any change for this duration (in a string value that can be converted to time.Duration) e.g. "5s" for five seconds
+
+func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*Limiter, error) {
+
+```
+The New() constructor for Limiter will create a default throttle.
+```
+// New() - configure a Limiter with default throttle settings
+// r : limiter name
+// c : ceiling 
+// min : minimum value for ceiling [default 1]
+func New(r string, c Ceiling, min ...Ceiling) *Limiter {
+
+	 NewConfig(r, c, 2, 1, m, "30s")
+```
+
 
 A throttler for the limiter. Set a range of values within which the limiter ceiling can operate. 
 

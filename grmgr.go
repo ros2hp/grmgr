@@ -49,7 +49,6 @@ var (
 	//
 	rAskCh     = make(chan Routine)
 	rExpirehCh = make(chan Routine)
-	//
 )
 
 // Limiter
@@ -74,6 +73,9 @@ type Limiter struct {
 	wg    sync.WaitGroup
 	rCnt  int // replace rCnt
 	rWait int // replace rWait
+	//
+	throttleDownActioned time.Time
+	throttleUpActioned   time.Time
 }
 
 func (l *Limiter) Ask() {
@@ -199,6 +201,13 @@ func New(r string, c Ceiling, min ...Ceiling) *Limiter {
 
 //limitUnmarshaler := grmgr.NewConfig("unmarshaler", *concurrent*2, 2,1,3,"1m")
 
+// NewConfig - configure a Limiter throttle
+// r: limiter name
+// c: ceiling value (also the maximum value for the throttle)
+// down: adjust current ceiling down by specified value
+// up:   adjust current ceiling up by specified value
+// min: minimum value of ceiling
+// h: hold any change for this duration (in a string value that can be converted to time.Duration) e.g. "5s" for five seconds
 func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*Limiter, error) {
 
 	hold, err := time.ParseDuration(h)
@@ -206,8 +215,11 @@ func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*L
 		panic(err)
 		return nil, err
 	}
+	t0 := time.Now()
 
 	l := Limiter{c: c, maxc: c, minc: min, up: up, down: down, r: Routine(r), or: Routine(r), ch: make(chan struct{}), on: true, hold: hold}
+	l.throttleDownActioned = t0
+	l.throttleUpActioned = t0
 	registerCh <- &l
 	logAlert(fmt.Sprintf("New Routine %q  Ceiling: %d [min: %d, down: %d, up: %d, hold: %s]", r, c, min, down, up, h))
 	return &l, nil
@@ -221,9 +233,6 @@ var (
 	// keep live averages at the following reportInterval's (in seconds)
 	reportInterval          []int = []int{10, 20, 40, 60, 120, 180, 300, 600, 1200, 2400, 3600, 7200}
 	numSamplesAtRepInterval []int
-
-	throttleDownActioned time.Time
-	throttleUpActioned   time.Time
 )
 
 func init() {
@@ -417,14 +426,14 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 			}
 			t0 := time.Now()
 
-			for _, v := range rLimit {
+			for _, v := range allr {
 				//
 
-				if t0.Sub(throttleDownActioned) < v.hold {
+				if t0.Sub(v.throttleDownActioned) < v.hold {
 					logAlert("throttleDown: to soon to throttle down after last throttled action")
 				} else {
 
-					if t0.Sub(throttleUpActioned) < v.hold {
+					if t0.Sub(v.throttleUpActioned) < v.hold {
 						logAlert("throttleDown: to soon to throttle down after last throttled action")
 					} else {
 
@@ -440,8 +449,8 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 						}
 					}
 				}
+				v.throttleDownActioned = t0
 			}
-			throttleDownActioned = t0
 
 		case r = <-throttleUpCh:
 
@@ -452,14 +461,15 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 				allr[r] = rLimit[r]
 			}
 			t0 := time.Now()
-			for _, v := range rLimit {
+
+			for _, v := range allr {
 				//
 
-				if t0.Sub(throttleDownActioned) < v.hold {
+				if t0.Sub(v.throttleDownActioned) < v.hold {
 					logAlert("throttleDown: to soon to throttle down after last throttled action")
 				} else {
 
-					if t0.Sub(throttleUpActioned) < v.hold {
+					if t0.Sub(v.throttleUpActioned) < v.hold {
 						logAlert("throttleDown: to soon to throttle down after last throttled action")
 					} else {
 
@@ -475,8 +485,9 @@ func PowerOn(ctx context.Context, wpStart *sync.WaitGroup, wgEnd *sync.WaitGroup
 						}
 					}
 				}
+
+				v.throttleUpActioned = t0
 			}
-			throttleUpActioned = t0
 
 		case <-snapCh:
 
