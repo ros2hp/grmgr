@@ -8,7 +8,7 @@ In the example below we have a typical scenario where a stream of potentially th
 		
 		for node := range ch {
 	
-			limiterDP.Control()  // blocking call
+			limiterDP.Control()  // may block
 			
 			go processDP(limiterDP, node)
 		}
@@ -24,10 +24,10 @@ To safeguards the state of each Limiter, **_grmgr_** runs as a service, meaning 
 So before using  **_grmgr_**  you must start the service using:
 
 ```
- 	go grmgr.PowerOn(ctx, wpStart, wpEnd) 
+ 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd) 
 ```
 
-Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started  and shutdown via the context ctx.
+Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started and shutdown via the cancel context ctx.
 
 The contents of method Control() illustrates the communication with the **_grmgr_** service. Please review the code if you want to understand more of the details.
 
@@ -133,5 +133,3 @@ The associated throttle methods for a Limiter, l:
 
 	l.Down()
 ```
-Provide a limiter.Up() and limiter.Down() to change the limiter's current ceiling value. 
-
