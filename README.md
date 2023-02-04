@@ -24,7 +24,7 @@ To safeguards the state of each Limiter, **_grmgr_** runs as a service, meaning 
 So before using  **_grmgr_**  you must start the service using:
 
 ```
- 		go grmgr.PowerOn(ctx, wpStart, wpEnd) 
+ 	go grmgr.PowerOn(ctx, wpStart, wpEnd) 
 ```
 
 Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started  and shutdown via the context ctx.
@@ -56,11 +56,11 @@ To configure a logger for __grmgr__ use the following:
 ```
 Available log levels are:
 ```
-const (
-	Alert LogLvl = iota
-	Debug
-	NoLog
-)
+	const (
+		Alert LogLvl = iota
+		Debug
+		NoLog
+	)
 ```
 
  **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
@@ -127,9 +127,11 @@ func New(r string, c Ceiling, min ...Ceiling) *Limiter {
 
 	 NewConfig(r, c, 2, 1, m, "30s")
 ```
+The associated throttle methods for a Limiter, l:
+```
+	l.Up()
 
-
-A throttler for the limiter. Set a range of values within which the limiter ceiling can operate. 
-
+	l.Down()
+```
 Provide a limiter.Up() and limiter.Down() to change the limiter's current ceiling value. 
 
