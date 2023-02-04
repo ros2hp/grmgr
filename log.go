@@ -56,14 +56,14 @@ func TestErrLogger() {
 }
 
 func logErr(e error) {
-	if logr == nil {
-		panic(fmt.Errorf("logAlert: no logger set. Use SetLogger()"))
-	}
 
 	if errlogr != nil {
 		errlogr(logr.Prefix(), e)
 	}
 
+	if logr == nil {
+		return
+	}
 	var out strings.Builder
 
 	out.WriteString("|error|")
@@ -76,13 +76,14 @@ func logErr(e error) {
 func logFatal(e error) {
 	LogFail(e)
 }
+
 func LogFail(e error) {
-	if logr == nil {
-		panic(fmt.Errorf("logAlert: no logger set. Use SetLogger()"))
-	}
 
 	if errlogr != nil {
 		errlogr(logr.Prefix(), e)
+	}
+	if logr == nil {
+		return
 	}
 	var out strings.Builder
 
@@ -95,7 +96,7 @@ func LogFail(e error) {
 
 func logDebug(s string) {
 	if logr == nil {
-		panic(fmt.Errorf("logAlert: no logger set. Use SetLogger()"))
+		return
 	}
 	if logLvl == Debug {
 		var out strings.Builder
@@ -109,7 +110,7 @@ func logDebug(s string) {
 func logAlert(s string) {
 
 	if logr == nil {
-		panic(fmt.Errorf("logAlert: no logger set. Use SetLogger()"))
+		return
 	}
 	if logLvl <= Debug {
 		var out strings.Builder
