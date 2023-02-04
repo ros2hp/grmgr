@@ -43,7 +43,7 @@ var Control throttle_
 
 // Channels
 var (
-	EndCh          = make(chan Routine, 1)
+	EndCh          = make(chan Routine)
 	throttleDownCh = make(chan Routine)
 	throttleUpCh   = make(chan Routine)
 	//
@@ -221,7 +221,7 @@ func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*L
 	l.throttleDownActioned = t0
 	l.throttleUpActioned = t0
 	registerCh <- &l
-	logAlert(fmt.Sprintf("New Routine %q  Ceiling: %d [min: %d, down: %d, up: %d, hold: %s]", r, c, min, down, up, h))
+	logAlert(fmt.Sprintf("New Routine %q [%s] Ceiling: %d [min: %d, down: %d, up: %d, hold: %s]", r, l.r, c, min, down, up, h))
 	return &l, nil
 }
 
