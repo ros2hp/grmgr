@@ -1,7 +1,54 @@
-# grmgr
-Wherever there is an opportunity to instantiate a large number of goroutines, typically in a for-loop, **_grmgr_** (GoRoutine ManaGeR) can be used to constrain the number of concurrent goroutines to a fixed number until the loop is exited. 
+# grmgr - goroutine manager
 
-In the example below we have a typical scenario where a stream of potentially thousands of nodes is read from a channel. Each node is passed to a goroutine, __processDP()__.
+## Goroutines and why they might need to be managed?
+
+The ease by which Go enables Communicating Sequential Processes (CSP) style programming is, in my view, its most identifying and powerful feature. Fundamental to CSP in Go is the goroutine, which provides the ability to asynchronously execute programming tasks. For example, in the code fragment below, an unlimited number of paralelTask are instantiated, simply by placing it as a goroutine in a loop.
+
+```
+	        . . .
+		for node := range channel {
+			go parallelTask(node)
+		}
+                . . .
+```
+
+This, may or may not, present a resourcing issue to the server. If the parallelTask is short and fast and the server has prodigous resources, most notably cores, then the threshold at which it can comfortably execute concurrent paralelTask's will be relatively high.
+
+To control the number of parallel executions, however, is relatively simple ofcourse. Just introduce a "counter" and create a channel to pass back a "finished" message from the parallelTask. Channels represent the communication in CSP.
+
+```
+	        . . .
+                const MAX_CONCURRENT = 100
+                var channel = make(chan,message)
+                let task_counter = 0
+
+		for node := range channel {
+
+			go parallelTask(node, channel)
+                        task_counter++
+
+                        if task_counter == MAX_CONCURRENT {
+                             <-channel                       // block here and wait on any one of the concurrent parallelTask to finish
+                             task_counter--
+                        }
+		}
+                . . .
+```
+So, if it is so easy to manage the number of concurrent goroutines, why the need for a package that claims to manager goroutines?
+
+## What does grmgr do?
+
+grmgr has a single view of all the goroutines running under its management. grmgr is typically used in large and complex programs that have many tens of concurrently running components each of which may spawn a large number parallel tasks. grmgr relieves the programmer of having to determining, at runtime, how to adjust the number of parallel goroutines the component can instantiate. This might be in response to some "monitor" component that has determined the server spare capacity to run more goroutines or it is under too much load and the program needs to reduce the number of concurrent goroutines across one or more of its components. It should be stated that the monitor component is not currently part of grmgr but it may be a worthwhile development if there is enough interest in it.
+
+There are a number of ways grmgr can be implemented of course, but I chose to implement the solution as a "service", which runs as goroutine. A service simplifies the concurrency issues managing access to a single respository containing the state of each component that uses grmgr. It also means that a goroutine constraint, such as the maximum number of parallel goroutines that can run for a component, can be safely and easily modified (up or down) at runtime, by sending a "modify" message to the grmgr service. This  begs the question "what determines a safe number of parallel tasks to run for a component?" This part of the grmgr service has yet to be developed but the monitor component will require access to something like an grmgr service to implement its decisions. As a minimum the monitor could regulate the load on the server (CPU, memory etc) by messaging grmgr to either increase or decresase the number of concurrent goroutines. grmgr would use its knowledge from the repository of performance metrics for each goroutine task under its management (such as duration of the task) to determine how best to implement the request from the "monitor".
+
+A further development would use grmgr to drive a dashboard showing the program components and the number of goroutines running in each in near realtime. grmgr already contains a small repository of history data containing for each component the number of concurrent goroutines it has spawned in the last 30 second, 1minute, 5minuter..... 
+
+So what we have in the grmgr currently is the minimum of functionality. It simply controls the number of concurrent goroutines a component can instantiate and provides a rudimentary repository of its history.
+
+## How to use grmgr.
+
+In the example below we have a typical scenario where a stream of potentially thousands of nodes is read from a channel. Each node is passed to a goroutine, __processDP()__ for processing. How this would use grmgr
 ```
 
 		limiterDP := grmgr.New("dp", 10)
