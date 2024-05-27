@@ -1,8 +1,8 @@
 # grmgr - goroutine manager
 
-## Goroutines and why they might need to be managed?
+## A quick 101 on CSP?
 
-The ease by which Go enables Communicating Sequential Processes (CSP) style programming is, in my view, its most identifying and powerful feature. Fundamental to CSP in Go is the goroutine, which provides the ability to asynchronously execute programming tasks. For example, in the code fragment below, an unlimited number of paralelTask are instantiated, simply by placing it as a goroutine in a loop.
+Built into Go are the foundations of a style of programming called Communicating Sequential Processes (CSP) and in my humble opinion is the languages most identifying and powerful feature. One of the fundamental components of CSP is Go's **_goroutine_**, which enable functions to be executed asynchronously using Go's built in runtime engine. The other component fundamental to CSP is Go's **_channel_**, which provides the infrastructure to enable communication between goroutines, i.e. the C in  CSP. In the two line code fragment we are reading data from a channel, which has been populated by a goroutine (not shown) in a for-loop and instantiating a parraleTask function asynchronously using the **_go_** keyword. 
 
 ```
 	        . . .
@@ -12,9 +12,9 @@ The ease by which Go enables Communicating Sequential Processes (CSP) style prog
                 . . .
 ```
 
-This, may or may not, present a resourcing issue to the server. If the parallelTask is short and fast and the server has prodigous resources, most notably cores, then the threshold at which it can comfortably execute concurrent paralelTask's will be relatively high.
+This examples will instantiate an unlimited number of asyncrhonous functions , which, may or may not, present a resourcing issue to the server. If the parallelTask is not particularly compute instensive (i.e. performs some IO operations) and the server has prodigous resources, most notably cores, then the threshold at which it can comfortably execute concurrent paralelTask's will be relatively high.
 
-To control the number of parallel executions, however, is relatively simple ofcourse. Just introduce a "counter" and create a channel to pass back a "finished" message from the parallelTask. Channels represent the communication in CSP.
+To prevent too many concurrent tasks from overwhelming the server it is relatively easy to implement some control. Just introduce a "counter" and create a  **_channel_** to pass back a "finished" message from the parallelTask.
 
 ```
 	        . . .
