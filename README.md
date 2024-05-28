@@ -9,7 +9,7 @@ Built into Go are the foundations of a style of programming called Communicating
 	        . . .
 		for node := range channel {
 
-			go parallelTask(node)
+			go parallelTask(node)  // non-blocking. Functions starts executing immediately.
 
 		}
                 . . .
