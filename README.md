@@ -2,23 +2,31 @@
 
 ## A quick 101 on CSP?
 
-Built into Go are the components that enable a style of programming called Communicating Sequential Processes (CSP), which in the humble opinion of the author is the language's most identifying and powerful feature. The first components is a **_goroutine_**, which is a function that runs asynchronously via Go's runtime scheduler. The second fundamental component is a **_channel_**, which provides the infrastructure to enable communication between **_goroutines_**, i.e. enabling the C in CSP, and also aids as a synchronisation mechanism between goroutines. CSP enables a pipeline of goroutines to be created with channels between each routine in the pipeline exchanging data. This is an example of concurrently running goroutines, they perform different tasks but are running concurrently.
-A different example of concurrency is where multiple instances of the same gofunction are running concurrently. This is known as parallel processing. This actual number of instances running in parallel is usually fixed and is known as the degree-of-parallelism of the software component that is running the parallel goroutines. grmgr is only concerned with parallel concurrency. It will ensure that only a fixed number of goroutines are running concurrently based on the degree of parallelism specified when the grmgr throttle was created. 
+Built into Go are the components that enable a style of programming known as Communicating Sequential Processes (CSP), which in the humble opinion of the author is the language's most identifying and powerful feature. Afterall the existence of this feature has led to probably Go's most famous quote; 
 
-The code fragment below is an niave example of how to instantiate parallel processing of the **_parallelTask_** function.  In this example the for-loop reads node data from a channel populated by a goroutine that is not shown. The body of the for-loop instantiate  **_parallelTask_**  as a goroutine using the **_go_** keyword. 
+...
+					"don't communicate by sharing memory, share memory by communicating"
+...
+
+
+The first Go components that supports CSP is a **_goroutine_**, which is a function that runs asynchronously via Go's built in runtime scheduler. The second Go component is a **_channel_**, which provides the infrastructure to enable concurrent **_goroutines_** to communicate and exchange messages and data, i.e. enabling the C in CSP. Channels also have the facility to sychronise concurrent **_goroutines_**.
+
+There are two distinct patterns in concurrent programming that CSP can readily implement. The first is the **_process pipeline_**, which entails different functions executing concurrently (as goroutines), exchanging data between between each other via dedicated channels. Each functions performs some value-add to the data which it then passes onto the next goroutine in the pipeline via another dedicated channel, which represents a different function performing a different value-add . The second pattern is known as **_parallel_concurrency_** (aka parallel processing) and covers the circumstance where we have multiple instances of the same function running concurrently. **_grmgr_** is not concerned with the former pattern, but is used soley for the later to control the number of concurrent goroutines. 
+
+The code fragment below presents a niave example of how to instantiate an unlimited number of instances of **_parallelTask_**. While this satisfies the parallel pattern of concurrent programing it is unusual in that there is no checks or control over how many **_parallelTask_** are running concurrently before the next loop starts another one. Effectively there is no ceiling to the degree of parallelism in this example.   
 
 ```	. . .
 	var channel = make(chan,node)
 	.. . .
 	for node := range channel {
 
-		go parallelTask(node)  // non-blocking. parallelTask starts executing immediately
+		go parallelTask(node)  // non-blocking. parallelTask starts executing immediately as a goroutine.
 
 	}
 	. . .
 ```
 
-As the for-loop body has no constraints there as many **_parallelTask_** functions started as their are entries in the channel queue. If there is a lot this may impose a considerable load on the server, depending on how long the function takes to run, or it performs some database operations, it will eventually consume all the database connections available in the connection pool.  Consequently some control over the number of concurrent **_parallelTask_** needs to be introduced. We refer to this limit as the **_degree of parallelism_** of the goroutine.  The act of constraining the number of concurrent functions is referred to as **_throttling_**. 
+As the for-loop body has no control over the number of **_parallelTask_** instantiated started as their are entries in the channel queue. If there is a lot this may impose a considerable load on the server, depending on how long the function takes to run, or it performs some database operations, it will eventually consume all the database connections available in the connection pool.  Consequently some control over the number of concurrent **_parallelTask_** needs to be introduced. We refer to this limit as the **_degree of parallelism_** of the goroutine.  The act of constraining the number of concurrent functions is referred to as **_throttling_**. 
 
 To introduce some throttling on **_parallelTask_** is quite easy. Simply as adding a "counter" and create a  **_channel_** to pass back a "finished" message from each **_parallelTask_**.
 
