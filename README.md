@@ -4,9 +4,9 @@
 
 Built into Go are the foundations of a style of programming called Communicating Sequential Processes (CSP), which in the humble opinion of the author, is the language's most identifying and powerful feature. One of the fundamental components of Go's implementation of CSP is a **_goroutine_**, which is a function that is executed asynchronously in Go's runtime scheduler. The other fundamental Go component to CSP is a **_channel_**, which provides the infrastructure to enable communication between **_goroutines_**, i.e. enabling the C in CSP. In the code fragment below the for-loop reads node data from a channel populated by a goroutine (not shown). In the body of the for-loop a function, a **_parallelTask_** is instantiated as a goroutine using the **_go_** keyword. 
 
-```
+```		. . .
                 var channel = make(chan,node)
-	        . . .
+
 		for node := range channel {
 
 			go parallelTask(node)  // non-blocking. Function, parallelTask, starts executing immediately.
@@ -56,7 +56,7 @@ In the code snippet below we have the same scenario as in the previous example b
 
 ```
 	. . .
-	throttleDP := grmgr.New("data-propagation", 10)  // configure a new grmgr throttle. Set the max parallelism to 10.
+	throttleDP := grmgr.New("data-propagation", 10)  // create a grmgr throttle - set max concurrent to 10.
 	
 	for node := range ch {                     // wait for node data on channel.
 	
@@ -66,14 +66,16 @@ In the code snippet below we have the same scenario as in the previous example b
 
 	}
 
-	limiterDP.Wait()                           // wait for all processDP goroutines to finish.
+	throttleDP.Wait()                          // wait for all processDP goroutines to finish.
 	. . .
 ```
 
-The Control() method will block when the number of concurrent groutines exceeds the ceiling value of the Limiter. When one of the goroutines finish Control() will be immedidately unblocked.
-In this way **_grmgr_** can maintain a fixed number of concurrent goroutines, equal to the ceiling value. The Limiter also comes with a Wait(), which emulates sync.Wait(), and in this case will wait until the last of the goroutines finish.
+The Control() method will block and wit on a message from **_grmgr_** to proceed. **_grmgr_** will only send a message when the number of concurrent groutines is less than or equal to the max concurrent defined for the throttle. When any of the **_processDP_** goroutines finish Control() will be immedidately unblocked.
+In this way **_grmgr_** can maintain a fixed number of concurrent goroutines. A Throttle also comes with a Wait() method, which emulates the sync.Wait() from the Standard Library. in this case it will wait for all the **_processDP_** goroutines to finish.
 
-To safeguards the state of each Limiter, **_grmgr_** runs as a service, meaning  **_grmgr_** runs as a goroutine and communicates only via channels, which is encapsulated in each of the __Limiter__ methods. In this way access to shared data is serialised and **_grmgr_** is made concurrency safe.
+## The Architecture
+
+To safeguards the state of each Throttle, **_grmgr_** runs as a service, meaning  **_grmgr_** runs as a goroutine and communicates only via channels, which is encapsulated in each of the __Limiter__ methods. In this way access to shared data is serialised and **_grmgr_** is made concurrency safe.
 
 So before using  **_grmgr_**  you must start the service using:
 
