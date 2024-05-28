@@ -2,17 +2,20 @@
 
 ## A quick 101 on CSP?
 
-Built into Go are the foundations of a style of programming called Communicating Sequential Processes (CSP) and in my humble opinion is the languages most identifying and powerful feature. One of the fundamental components of CSP is Go's **_goroutine_**, which enable functions to be executed asynchronously using Go's built in runtime engine. The other component fundamental to CSP is Go's **_channel_**, which provides the infrastructure to enable communication between goroutines, i.e. enabling the C in  CSP. In the two line code fragment we are reading data from a channel, which has been populated by a goroutine (not shown) in a for-loop and instantiating a parraleTask function asynchronously using the **_go_** keyword. 
+Built into Go are the foundations of a style of programming called Communicating Sequential Processes (CSP) and in the humble opinion of the author is the languages most identifying and powerful feature. One of the fundamental components of CSP is a **_goroutine_**, which is a function that is executed asynchronously in Go's runtime engine. The other component fundamental to CSP is a **_channel_**, which provides the infrastructure to enable communication between goroutines, i.e. enabling the C in CSP. In the code fragment below the for-loop reads node data from a channel populated by a goroutine (not shown). In the body of the for-loop a function, a **_parallelTask_** is instantiated as a goroutine using the **_go_** keyword. 
 
 ```
+                var channel = make(chan,node)
 	        . . .
 		for node := range channel {
+
 			go parallelTask(node)
+
 		}
                 . . .
 ```
 
-This examples will instantiate an unlimited number of asyncrhonous functions, which may present a resourcing issue to the server. If the **_parallelTask_** is not particularly compute instensive (i.e. performs some blocking operations like IO or database requests) and the server has prodigous resources, most notably cores, then the threshold at which it can comfortably execute multiple concurrent **_parallelTask_** will be relatively high. Of course if **_parallelTask_** is communicating with a database then it will eventually reach the maximum number of connections a database can support or that have been configured into the connection pool. Consequently some control is required over the number of concurrent asyncrhonous functions that are executing. 
+As the for-loop body has no constraints there may be an unlimited number of **_parallelTask_** functions started. This may impose a considerable load on the server, depending on how long the task takes to run and how many nodes are queued in the channel, or it may consume all the database connections available in the pool if the task is performing some database operations.  Consequently some control over the number of concurrent **_parallelTask_** needs to be employeed. We refer to this limit as the degree of parallelism of the component.  
 
 To prevent too many concurrent **_parallelTask_** it is relatively easy to introduce some throttling capability. Infact it is a simple as adding a "counter" and create a  **_channel_** to pass back a "finished" message from each **_parallelTask_**.
 
@@ -42,7 +45,7 @@ While grmgr can be used to throttle individual goroutines across an application 
 
 Not only could grmgr respond to scaling events from external systems it could also feed into an application dashboard with information about the degree of parallelism in each component of the application in realtime.
 
-So the benefits from grmgr, above normal goroutine throttling are significant, particularly as the coding effort is minimal.
+So the benefits from grmgr, above normal goroutine throttling are significant, particularly as the coding effort is so minimal.
 
 Lets look at some code examples...
 
