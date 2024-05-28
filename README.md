@@ -41,7 +41,9 @@ So, if it is so easy to manage the number of concurrent **_goroutines_**, why th
 
 ## The Benefits of grmgr?
 
-While **_grmgr_** may be used to throttle many goroutines across an application it also provides the facility to dynamically adjust the throttle limits of each goroutine, up or down, in realtime while the application is running. This capability could be used by a system monitor, for example, to send a scale-down message to  **_grmgr_** in response to a CPU overload alarm. Over time the application would adjust the number of concurrent goroutines in response to **_grmgr_** enforcing lower concurrency limits of each goroutine. 
+While **_grmgr_** may be used to throttle many goroutines across an application it also provides the facility to dynamically adjust the throttle limits of each goroutine, up or down, in realtime while the application is running. As the applicaton continues to run the number of concurrent instances of each goroutines will be brought into line to match the new throttle limits. 
+
+This capability could be used by a system monitor, for example, to send a scale-down message to  **_grmgr_** in response to a CPU overload alarm. Over time the application would adjust the number of concurrent goroutines in response to **_grmgr_** enforcing lower concurrency limits of each goroutine. 
 
 Not only could **_grmgr_** respond to scaling events from external systems it could also feed data into an application dashboard displaying, for example, historic and current values of the  degree of parallelism of each **_goroutine_**. 
 
