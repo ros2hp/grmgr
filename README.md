@@ -3,11 +3,13 @@
 ## A quick 101 on CSP?
 
 Built into Go are the components that enable a style of programming known as Communicating Sequential Processes (CSP), which in the humble opinion of the author is the language's most identifying and powerful feature. Afterall the existence of this feature has led to probably Go's most famous quote; 
-...
-    
-     					"don't communicate by sharing memory, share memory by communicating"
 
 ...
+    
+     		"don't communicate by sharing memory, share memory by communicating"
+
+...
+
 The first Go components that supports CSP is a **_goroutine_**, which is a function that runs asynchronously via Go's built in runtime scheduler. The second Go component is a **_channel_**, which provides the infrastructure to enable concurrent **_goroutines_** to communicate and exchange messages and data, i.e. enabling the C in CSP. Channels also have the facility to sychronise concurrent **_goroutines_**.
 
 There are two distinct patterns in concurrent programming that CSP can readily implement. The first is the **_process pipeline_**, which entails different functions executing concurrently (as goroutines), exchanging data between between each other via dedicated channels. Each functions performs some value-add to the data which it then passes onto the next goroutine in the pipeline via another dedicated channel, which represents a different function performing a different value-add . The second pattern is known as **_parallel_concurrency_** (aka parallel processing) and covers the circumstance where we have multiple instances of the same function running concurrently. **_grmgr_** is not concerned with the former pattern, but is used soley for the later to control the number of concurrent goroutines. 
