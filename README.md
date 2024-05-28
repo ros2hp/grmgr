@@ -2,54 +2,52 @@
 
 ## A quick 101 on CSP?
 
-Built into Go are the foundations of a style of programming called Communicating Sequential Processes (CSP) and in the humble opinion of the author is the languages most identifying and powerful feature. One of the fundamental components of CSP is a **_goroutine_**, which is a function that is executed asynchronously in Go's runtime engine. The other component fundamental to CSP is a **_channel_**, which provides the infrastructure to enable communication between goroutines, i.e. enabling the C in CSP. In the code fragment below the for-loop reads node data from a channel populated by a goroutine (not shown). In the body of the for-loop a function, a **_parallelTask_** is instantiated as a goroutine using the **_go_** keyword. 
+Built into Go are the foundations of a style of programming called Communicating Sequential Processes (CSP), which in the humble opinion of the author, is the language's most identifying and powerful feature. One of the fundamental components of Go's implementation of CSP is a **_goroutine_**, which is a function that is executed asynchronously in Go's runtime scheduler. The other fundamental Go component to CSP is a **_channel_**, which provides the infrastructure to enable communication between **_goroutines_**, i.e. enabling the C in CSP. In the code fragment below the for-loop reads node data from a channel populated by a goroutine (not shown). In the body of the for-loop a function, a **_parallelTask_** is instantiated as a goroutine using the **_go_** keyword. 
 
 ```
                 var channel = make(chan,node)
 	        . . .
 		for node := range channel {
 
-			go parallelTask(node)  // non-blocking. Functions starts executing immediately.
+			go parallelTask(node)  // non-blocking. Function, parallelTask, starts executing immediately.
 
 		}
                 . . .
 ```
 
-As the for-loop body has no constraints there may be an unlimited number of **_parallelTask_** functions started. This may impose a considerable load on the server, depending on how long the task takes to run and how many nodes are queued in the channel, or it may consume all the database connections available in the pool if the task is performing some database operations.  Consequently some control over the number of concurrent **_parallelTask_** needs to be employeed. We refer to this limit as the degree of parallelism of the component.  
+As the for-loop body has no constraints there as many **_parallelTask_** functions started as their are entries in the channel queue. If there is a lot this may impose a considerable load on the server, depending on how long the function takes to run, or it performs some database operations, it will eventually consume all the database connections available in the connection pool.  Consequently some control over the number of concurrent **_parallelTask_** needs to be introduced. We refer to this limit as the **_degree of parallelism_** of the goroutine.  The act of constraining the number of concurrent functions is referred to as **_throttling_**. 
 
-To prevent too many concurrent **_parallelTask_** it is relatively easy to introduce some throttling capability. Infact it is a simple as adding a "counter" and create a  **_channel_** to pass back a "finished" message from each **_parallelTask_**.
+To introduce some throttling on **_parallelTask_** is quite easy. Simply as adding a "counter" and create a  **_channel_** to pass back a "finished" message from each **_parallelTask_**.
 
 ```
 	        . . .
-                const MAX_CONCURRENT = 100
-                var channel = make(chan,message)
-                let task_counter = 0
+                const MAX_CONCURRENT = 100                  // throttle parallelTask to a maximum ot 100 concurrent instances
+                var channel = make(chan,message)            // create a Go channel to send back finish message from parallelTask
+                let task_counter = 0                 
 
 		for node := range channel {
 
-			go parallelTask(node, channel)
+			go parallelTask(node, channel)      // instantiate parallelTask as a goroutine. Pass in the channel.
                         task_counter++
 
                         if task_counter == MAX_CONCURRENT {
-                             <-channel                       // block here and wait on any one of the concurrent parallelTask to finish
+                             <-channel                       // block and wait for a finish message from any one of the running parallelTask's
                              task_counter--
                         }
 		}
                 . . .
 ```
-So, if it is so easy to manage the number of concurrent goroutines, why the need for a package that claims to manager goroutines?
+So, if it is so easy to manage the number of concurrent **_goroutines_**, why the need for a package that claims to manager goroutines?
 
-## What are the benefits of using grmgr?
+## The Benefits of grmgr?
 
-While grmgr can be used to throttle individual goroutines across an application it also provides the facility to dynamically adjust the throttle limits of each goroutine, up or down, in realtime while the application is running. This capability could be used by a server monitor, for example, to send a scale-down message to grmgr in response to a CPU overload alarm. Over time the application would reduce the degree of parallelism of all or some of its components thereby reduce the load on the server. 
+While **_grmgr_** may be used to throttle many goroutines across an application it also provides the facility to dynamically adjust the throttle limits of each goroutine, up or down, in realtime while the application is running. This capability could be used by a system monitor, for example, to send a scale-down message to  **_grmgr_** in response to a CPU overload alarm. Over time the application would adjust the number of concurrent goroutines in response to **_grmgr_** enforcing lower concurrency limits of each goroutine. 
 
-Not only could grmgr respond to scaling events from external systems it could also feed into an application dashboard with information about the degree of parallelism in each component of the application in realtime.
+Not only could **_grmgr_** respond to scaling events from external systems it could also feed data into an application dashboard displaying, for example, historic and current values of the  degree of parallelism of each **_goroutine_**. 
 
-So the benefits from grmgr, above normal goroutine throttling are significant, particularly as the coding effort is so minimal.
+The benefits from **_grmgr_** therefore may be quite significant. However, **_grmgr_** does not currently support any monitoring systems or dashboard technolgies so its useful is somewhat limited, although it does provide its own performance data.
 
-Lets look at some code examples...
-
-## How to use grmgr.
+## grmgp Coding Examples.
 
 In the example code segment below we have the same scenario as the previous example but this time it incorporates gmgr to scale a component called "data-propagation" to a maximum of 10 concurrent goroutines.
 
