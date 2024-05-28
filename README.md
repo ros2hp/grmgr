@@ -49,9 +49,9 @@ Not only could **_grmgr_** respond to scaling events from external systems it co
 
 The benefits from **_grmgr_** therefore may be quite significant. However, **_grmgr_** does not currently support any monitoring systems or dashboard technolgies so its useful is somewhat limited, although it does provide its own performance data.
 
-## grmgp Coding Examples.
+## Coding Examples using grmgr
 
-In the code snippet below we have the same scenario as in the previous example but this time it incorporates  **_grmgr_** to throttle the number of concurrent goroutines of processsDP to the limit specified in New configuration.
+In the code snippet below we have the same scenario from the previous example but this time written using **_grmgr_** to throttle the number of concurrent goroutines. Note how we don't have to create a channel or a counter. The throttle has subsumed this functionality.
 
 
 ```
