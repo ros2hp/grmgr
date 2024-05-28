@@ -51,7 +51,7 @@ The benefits from **_grmgr_** therefore may be quite significant. However, **_gr
 
 ## Coding Examples using grmgr
 
-In the code snippet below we have the same scenario from the previous example but this time written using **_grmgr_** to throttle the number of concurrent goroutines. Note how we don't have to create a channel or a counter. The throttle has subsumed this functionality.
+In the code snippet below we have the same scenario from the previous example but this time written using **_grmgr_** to throttle the number of concurrent goroutines. Note how we don't have to create a channel or a counter. The throttle has subsumed this functionality internally.
 
 
 ```
@@ -73,19 +73,31 @@ In the code snippet below we have the same scenario from the previous example bu
 The Control() method will block and wit on a message from **_grmgr_** to proceed. **_grmgr_** will only send a message when the number of concurrent groutines is less than or equal to the max concurrent defined for the throttle. When any of the **_processDP_** goroutines finish Control() will be immedidately unblocked.
 In this way **_grmgr_** can maintain a fixed number of concurrent goroutines. A Throttle also comes with a Wait() method, which emulates the sync.Wait() from the Standard Library. in this case it will wait for all the **_processDP_** goroutines to finish.
 
-## The Architecture
+## Architecture and Setup
 
-To safeguards the state of each Throttle, **_grmgr_** runs as a service, meaning  **_grmgr_** runs as a goroutine and communicates only via channels, which is encapsulated in each of the __Limiter__ methods. In this way access to shared data is serialised and **_grmgr_** is made concurrency safe.
+**_grmgr_** runs as a background "service" to the application. This simply means it runs as a goroutine which is typically started as part of the application initialisation and shutdown just before the application exits. 
 
-So before using  **_grmgr_**  you must start the service using:
+Before using  **_grmgr_**  the service must be started:
 
 ```
- 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd) 
+	var wpStart, wpEnd sync.WaitGroup                              // create a pair of WaitGroups
+	wpStart.Add(?)                                                 
+	wpEnd.Add(?)
+
+	ctx, cancel := context.WithCancel(context.Background())         // create a std package context with cancel function.
+
+ 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)                         // start grmgr as a goroutine
 ```
 
-Where wpStart and wpEnd are instances of sync.WaitGroup used to synchronise when the service is started and shutdown via the cancel context ctx.
+To shutdown the **_grmgr_** service simply issue the cancel function generated via the context package:
 
-The contents of method Control() illustrates the communication with the **_grmgr_** service. Please review the code if you want to understand more of the details.
+```
+	cancel() 
+```
+
+All communication with the **_grmgr_** service is via channels that are encapsulated within various methods of a throttle instance, created using the grmgr.New() function. In this way access to the parallelism state of each goroutine is serialised and **_grmgr_** is therefore concurrency safe.
+
+The code behind the Control() method  illustrates the use of channels to communicate with the **_grmgr_** service. 
 
 ```
 	func (l Limiter) Control() {
@@ -94,10 +106,10 @@ The contents of method Control() illustrates the communication with the **_grmgr
 	}
 ```
  
-When a Limiter is nolonger needed it should be deleted:
+When a Throttle is nolonger needed it should be deleted:
 
 ```
-	limiterDP.Delete()
+	throttleDP.Delete()
 ```
 
 A goroutine that is under the control of **_grmgr_** accepts a Limiter as an argument. Execute the __Done()__ method when the goroutine is finished.
@@ -160,7 +172,7 @@ The following code snippet illustrates a complete end-to-end use of the **_grmgr
 
 ## Limiter Throttle
 
-To configure a non-default throttle for a Limiter use NewConfig()
+To configure a non-default throttle use NewConfig()
 ```
 // NewConfig - configure a Limiter with non-default throttle settings
 // r : limiter name
