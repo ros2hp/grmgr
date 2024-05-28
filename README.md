@@ -51,21 +51,23 @@ The benefits from **_grmgr_** therefore may be quite significant. However, **_gr
 
 ## grmgp Coding Examples.
 
-In the example code segment below we have the same scenario as the previous example but this time it incorporates gmgr to scale a component called "data-propagation" to a maximum of 10 concurrent goroutines.
+In the code snippet below we have the same scenario as in the previous example but this time it incorporates  **_grmgr_** to throttle the number of concurrent goroutines of processsDP to the limit specified in New configuration.
 
 
 ```
-
-		throttleDP := grmgr.New("data-propagation", 10)
-		
-		for node := range ch {
+	. . .
+	throttleDP := grmgr.New("data-propagation", 10)  // configure a new grmgr throttle. Set the max parallelism to 10.
 	
-			throttleDP.Control()                // wait for a response from grmgr to proceed
+	for node := range ch {                     // wait for node data on channel.
+	
+		throttleDP.Control()               // wait for a response from grmgr to proceed.
 			
-			go processDP(throttleDP, node)
+		go processDP(throttleDP, node)     // non-blocking. Instantiate processDP as a goroutine. 
 
-		}
-		limiterDP.Wait()
+	}
+
+	limiterDP.Wait()                           // wait for all processDP goroutines to finish.
+	. . .
 ```
 
 The Control() method will block when the number of concurrent groutines exceeds the ceiling value of the Limiter. When one of the goroutines finish Control() will be immedidately unblocked.
