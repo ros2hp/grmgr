@@ -2,17 +2,20 @@
 
 ## A quick 101 on CSP?
 
-Built into Go are the foundations of a style of programming called Communicating Sequential Processes (CSP), which in the humble opinion of the author, is the language's most identifying and powerful feature. One of the fundamental components of Go's implementation of CSP is a **_goroutine_**, which is a function that is executed asynchronously in Go's runtime scheduler. The other fundamental Go component to CSP is a **_channel_**, which provides the infrastructure to enable communication between **_goroutines_**, i.e. enabling the C in CSP. In the code fragment below the for-loop reads node data from a channel populated by a goroutine (not shown). In the body of the for-loop a function, a **_parallelTask_** is instantiated as a goroutine using the **_go_** keyword. 
+Built into Go are the components that enable a style of programming called Communicating Sequential Processes (CSP), which in the humble opinion of the author is the language's most identifying and powerful feature. The first components is a **_goroutine_**, which is a function that runs asynchronously via Go's runtime scheduler. The second fundamental component is a **_channel_**, which provides the infrastructure to enable communication between **_goroutines_**, i.e. enabling the C in CSP. CSP enables a pipeline of goroutines to be created with channels between each routine in the pipeline exchanging data. This is an example of concurrently running goroutines, they perform different tasks but are running concurrently.
+A different example of concurrency is where multiple instances of the same gofunction are running concurrently. This is known as parallel processing. This actual number of instances running in parallel is usually fixed and is known as the degree-of-parallelism of the software component that is running the parallel goroutines. grmgr is only concerned with parallel concurrency. It will ensure that only a fixed number of goroutines are running concurrently based on the degree of parallelism specified when the grmgr throttle was created. 
 
-```		. . .
-                var channel = make(chan,node)
+The code fragment below is an niave example of how to instantiate parallel processing of the **_parallelTask_** function.  In this example the for-loop reads node data from a channel populated by a goroutine that is not shown. The body of the for-loop instantiate  **_parallelTask_**  as a goroutine using the **_go_** keyword. 
 
-		for node := range channel {
+```	. . .
+	var channel = make(chan,node)
+	.. . .
+	for node := range channel {
 
-			go parallelTask(node)  // non-blocking. Function, parallelTask, starts executing immediately.
+		go parallelTask(node)  // non-blocking. parallelTask starts executing immediately
 
-		}
-                . . .
+	}
+	. . .
 ```
 
 As the for-loop body has no constraints there as many **_parallelTask_** functions started as their are entries in the channel queue. If there is a lot this may impose a considerable load on the server, depending on how long the function takes to run, or it performs some database operations, it will eventually consume all the database connections available in the connection pool.  Consequently some control over the number of concurrent **_parallelTask_** needs to be introduced. We refer to this limit as the **_degree of parallelism_** of the goroutine.  The act of constraining the number of concurrent functions is referred to as **_throttling_**. 
@@ -20,22 +23,24 @@ As the for-loop body has no constraints there as many **_parallelTask_** functio
 To introduce some throttling on **_parallelTask_** is quite easy. Simply as adding a "counter" and create a  **_channel_** to pass back a "finished" message from each **_parallelTask_**.
 
 ```
-	        . . .
-                const MAX_CONCURRENT = 100                  // throttle parallelTask to a maximum ot 100 concurrent instances
-                var channel = make(chan,message)            // create a Go channel to send back finish message from parallelTask
-                let task_counter = 0                 
+	. . .
+	const MAX_CONCURRENT = 100                  // throttle parallelTask to a maximum ot 100 concurrent instances
+	var channel = make(chan,message)            // create a Go channel to send back finish message from parallelTask
+	task_counter := 0                 
 
-		for node := range channel {
+	for node := range channel {
 
-			go parallelTask(node, channel)      // instantiate parallelTask as a goroutine. Pass in the channel.
-                        task_counter++
+		go parallelTask(node, channel)      // instantiate parallelTask as a goroutine. Pass in the channel.
+		task_counter++
 
-                        if task_counter == MAX_CONCURRENT {
-                             <-channel                       // block and wait for a finish message from any one of the running parallelTask's
-                             task_counter--
-                        }
+		if task_counter == MAX_CONCURRENT {
+
+			<-channel                       // block and wait for a finish message from any one of the running parallelTask's
+			task_counter--
 		}
-                . . .
+	}
+	 . . .
+
 ```
 So, if it is so easy to manage the number of concurrent **_goroutines_**, why the need for a package that claims to manager goroutines?
 
