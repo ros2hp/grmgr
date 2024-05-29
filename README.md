@@ -2,13 +2,14 @@
 
 ## Concurrent Programming and grmgr?
  
-There are two distinct patterns in concurrent programming both of which are readily implemented using Go's CSP features, **_goroutines_** and **_channels_**. The first pattern is the **_process pipeline_**, which splits some processing logic into smaller parts, where each part is executed as a goroutine function that form a pipeline of goroutines joined by distinct channels which enable data to be passed between each. Data is then passed from one goroutine to the next goroutine until it eaves the final goroutine in the pipeline. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of executing goroutines each performing identical processing logic because it is the same function. The number of concurrently running **_goroutines_** is known as the **_degree of parallelism_**  (dop) of the process. 
+ 
+There are two distinct patterns in concurrent programming, both of which are readily implemented using Go's CSP features, **_goroutines_** and **_channels_**. The first pattern is the **_process pipeline_**, which splits some processing logic into smaller parts, where each part is executed as a goroutine function that form a pipeline of goroutines joined by distinct channels which enable data to be passed between each. Data is then passed from one goroutine to the next goroutine until it eaves the final goroutine in the pipeline. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of executing goroutines each performing identical processing logic because it is the same function. The number of concurrently running **_goroutines_** is known as the **_degree of parallelism_**  (dop) of the process. 
 
 Both concurrent programming patterns enable an application to scale across multiple CPUs/cores. However, some scaling can also be achieved on single cpu/core systems when there are blocking operations, like file io or database requests, involved.  
 
-**_grmgr_** is not concerned with pipelines. grmgr is used in parallel processing to enforce the **_degree of parallelism_**. For example, it is possible to configure grmgr to maintain 20 concurrent goroutines (ie.**_dop_** of 20) for a component and it will ensure the application can allocate no more than 20.  
+**_grmgr_** is not concerned with pipelines. grmgr is used in parallel processing patterns to enforce the **_degree of parallelism_** of the component. For example, it is possible to configure grmgr to maintain a **_dop_** of 20 for a component and it will ensure the application cannot allocate more than 20 concurrent instances of the function.  
 
-Let's look at a coding example using the parallel processing pattern when not using grmgr. The code fragment below presents a naive example of parallel processing as it will instantiate an unknown number of concurrent **_parallelTask_** functions. The **_dop_** of the operation will depend on how many nodes are queued in the channel at any point in time and how long the paralleTask operations takes to run. For this reason the **_dop_** may vary from 0 to a large unknown number throughout the life of the application. For this reason the code is consider naive as there is no checks or control over how many **_parallelTask_** are running before the next loop instantiates another. 
+Let's look at a coding example using the parallel processing pattern when not using grmgr. The code fragment below presents a naive example of parallel processing as it will instantiate an unknown number of concurrent **_parallelTask_** functions. The **_dop_** of the operation will depend on how many nodes are queued in the channel at any point in time and how long the paralleTask operations takes to run. For this reason the **_dop_** may vary from 0 to a large unknown number throughout the life of the application. For this reason the code is considered naive as there is no checks or control over how many **_parallelTask_** are running before the next loop instantiates another. 
 
 ```	. . .
 	var channel = make(chan,node)
@@ -21,7 +22,7 @@ Let's look at a coding example using the parallel processing pattern when not us
 	. . .
 ```
 
-The repercussions of a potentially unlimited **_dop_** should be pretty obvious. It has the potential to place a considerable strain on the server resources like CPU or memory when the **_dop_** is very high. Under such circumstances it may also exceed the number of database connections if a database request is performed at any point. The variable and potentially hostile consumption of system and database resources therefore makes for  an anti-social application as it cannot safely coexist with other applications running on the same server.
+The repercussions of a potentially unlimited **_dop_** should be pretty obvious. It has the potential to place a strain on the server resources like CPU or memory when the **_dop_** is very high. At any point it may also  exceed the number of database connections if a database request is performed in the operation. The variable and unpredictable and potentially hostile consumption of system and database resources therefore makes for an anti-social application that cannot safely coexist with other applications.
 
 To introduce some control over the **_dop_** (aka throttling) of the **_parallelTask_** is fortunately quite easy. Simply add a "counter" and create a  **_channel_** so **_parallelTask_** can pass back a "finished" message.
 
@@ -46,7 +47,7 @@ To introduce some control over the **_dop_** (aka throttling) of the **_parallel
 
 ```
 
-Using no more than a combination of counter and channel, the above code has stabilised the consumption of system resources by constraining the number of concurrent parallelTasks to not exceed 100. However what if you want to be able to vary the **_dop_** from 100 to say 20 while the application is running? How might the developer achieve this? Then how might they also implement changes in **_dop_** for other operations in the application that are parallelised?
+Using no more than a combination of counter and channel, the above code has stabilised the consumption of resources by constraining the number of concurrent parallelTasks to not exceed 100. However what if you want to be able to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? 
 
 ## Why the need for grmgr?
 
