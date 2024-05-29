@@ -49,15 +49,19 @@ To introduce some control over the **_dop_** (aka throttling) of the **_parallel
 
 Using no more than a combination of counter and channel, the above code has stabilised the consumption of resources by constraining the number of concurrent parallelTasks to not exceed 100. However what if you want to be able to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? 
 
-## Why the need for grmgr?
+## Why grmgr?
 
-While **_grmgr_** may be used to throttle all parallel goroutines within an application it also provides the facility to dynamically adjust the parallel limits of each goroutine, up or down, and in realtime while the application is running. grmgr can then implement those changes via the usual communication with the application, so as the applicaton continues to run the number of concurrent instances of each goroutines will be brough into line to match the new modified limits. 
+The first benefit of **_grmgr_** is it reduce the coding effort to implement a **_dop_** for each parallel component in an application. However its main benefit may be that it also provides the dynamical throttling  capability to all the parallelised components where it is used. Adjusting the **_dop_** of each component, up or down, in realtime, while the application is running is now achievable. Over time, the application with grmgr assistance, will stabilise to the new **_dop_** values for each component. 
 
-This capability could be used by a system monitor, for example, to send a scale-down message to  **_grmgr_** in response to a CPU overload alarm. Over time the application would adjust the number of concurrent goroutines in response to **_grmgr_** enforcing lower concurrency limits of each goroutine. 
 
-Not only could **_grmgr_** respond to scaling events from external systems it could also feed data into an application dashboard displaying, for example, historic and current values of the  degree of parallelism of each **_goroutine_**. 
+An application that can vary its scalability and therefore consumption of resources, in realtime via something like grmgr, would be very useful to a system monitor.  In the case where it receives a CPU overload alert it can respond by sending a "scale-down" event **_grmgr_** which would then start to throttle one or more of parallel components in the application. 
 
-The benefits from **_grmgr_** therefore may be quite significant. However, **_grmgr_** does not currently support any monitoring systems or dashboard technolgies so its useful is somewhat limited, although it does provide its own performance data.
+**_grmgr_** could also be used to send regular **_dop_** status reports to an "application dashboard" for display purposes. 
+
+
+The power of **_grmgr_** to control an application's data throughput and consequently its resource consumption, is therefore a significant contributor to an application's sociability. 
+
+That is the big picture view of **_grmgr_**. In its current guise it cannot respond to external systems such as system monitor or dashboard. While it can do dynamic throttling for an application that employees significant amounts of parallelism it cannot respond to external systems to initiate the throttling of parallel tasks.
 
 ## Coding Examples using grmgr
 
