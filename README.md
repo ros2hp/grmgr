@@ -51,17 +51,15 @@ Using no more than a combination of counter and channel, the above code has stab
 
 ## Why grmgr?
 
-The first benefit to using **_grmgr_** is reduced coding effort when implementing a **_dop_** for each parallel component in an application. However its main benefit may be that it provides the dynamic throttling  capability mentioned at the end of the previous section. Adjusting the **_dop_** of each component, up or down, in realtime, while the application is running is now achievable. When a scale down event is triggered in some way, the application can be made to respond, over a brief period, and stabilise to lower **_dop_** values enforced by grmgr. 
-
+The first benefit to using **_grmgr_** is reduced coding effort when implementing a **_dop_** for each parallel component in an application. However its main benefit may be that it provides the dynamic throttling  capability mentioned at the end of the previous section. Adjusting the **_dop_** of each component, up or down, in realtime, while the application is running is now achievable. When a scale down event is triggered in some way, the application can be made to respond, over a brief period, and stabilise to the lower **_dop_** values set and enforced by grmgr. 
 
 The ability for an application to dynamical scale, up or down, would be very useful for a system monitor so it can respond to some system event autonomously.  
 
 **_grmgr_** could also be used to send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. 
 
+The ability to control an application's data throughput and its resource consumption, by changing the **_dop_** levels of an application, means **_grmgr_** can make a significant contribution to an application's sociability. 
 
-The power of **_grmgr_** to control an application's data throughput and its resource consumption, is therefore a significant contributor to an application's sociability. 
-
-That is the big picture view of **_grmgr_**. In its current guise it cannot respond to external systems such as system monitor or dashboard. While it can do dynamic throttling responding to event that would make use of this capability are currently out of scope.
+That is the big picture view of **_grmgr_**. In its current guise it cannot respond to external systems such as system monitor or dashboard. While it can do dynamic throttling, responding to event that would make use of this capability are currently not implemented.
 
 ## Coding Examples using grmgr
 
