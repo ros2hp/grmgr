@@ -22,9 +22,10 @@ Let's look at a coding example using the parallel processing pattern when not us
 	. . .
 ```
 
-The repercussions of a potentially unlimited **_dop_** should be pretty obvious. It has the potential to place a strain on the server resources like CPU or memory when the **_dop_** is very high. At any point it may also  exceed the number of database connections if a database request is performed in the operation. The variable and unpredictable and potentially hostile consumption of system and database resources therefore makes for an anti-social application that cannot safely coexist with other applications.
 
-To introduce some control over the **_dop_** (aka throttling) of the **_parallelTask_** is fortunately quite easy. Simply add a "counter" and create a  **_channel_** so **_parallelTask_** can pass back a "finished" message.
+The repercussions of a potentially unlimited **_dop_** should be pretty obvious. It has the potential to place a strain on the server resources like CPU or memory when the **_dop_** is very high. At any point it may also  exceed the number of database connections if a database request is performed in the operation. The variable and unpredictable and potentially hostile consumption of system and database resources therefore makes it an anti-social application that cannot safely coexist with other applications.
+
+To introduce some control over the **_dop_** of the **_parallelTask_** is fortunately quite easy. A common expression for this capability is **_throttling_**. To throttle this component is a matter of adding a "counter" and a  **_channel_**. The channel is used to send a "finished" message from **_parallelTask_**.
 
 ```
 	. . .
@@ -47,7 +48,7 @@ To introduce some control over the **_dop_** (aka throttling) of the **_parallel
 
 ```
 
-Using no more than a combination of counter and channel, the above code has stabilised the consumption of resources by constraining the number of concurrent parallelTasks to not exceed 100. However what if you want to be able to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? 
+Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent parallelTasks to not exceed 100. However what if you want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
 
 ## Why grmgr?
 
