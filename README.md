@@ -174,7 +174,7 @@ Available log levels are:
 
 ## Configuring the Throttle
 
-To configure a non-default throttle use NewConfig()
+To configure a non-default throttle use NewConfig().
 
 
 ```
@@ -188,25 +188,13 @@ To configure a non-default throttle use NewConfig()
 
 	func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*Limiter, error) {
 
-``
+```
 	
-The New() constructor for Limiter will create a default throttle.
-
-
-```
-	// New() - configure a Limiter with default throttle settings
-	// r : limiter name
-	// c : ceiling 
-	// min : minimum value for ceiling [default 1]
-	func New(r string, c Ceiling, min ...Ceiling) *Limiter {
-
-	 NewConfig(r, c, 2, 1, m, "30s")
-```
 
 
 ** Modify the **_dop_** 
 
-Use the filling method calls on a throttle to modify the associated **_op_** up or down
+Use the following methods on a throttle to vary the throttle's **_dop_** value based on the throttle configuration.
 
 
 ```
@@ -214,3 +202,4 @@ Use the filling method calls on a throttle to modify the associated **_op_** up 
 
 	Down()
 ```
+
