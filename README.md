@@ -116,9 +116,9 @@ The code example below has introduced **_grmgr_** to the example from Section 1.
 
 ```
 
-The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles used in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call which will wait for a response from the **_grmgr_** service before continuing.  It will immediately unblock when the number of running **_processDP_** groutines is less than or equal to the **_dop_** defined in New(). If the number of running **_processDP_** is greater then it will wait until one of the goroutines has finished. In this way **_grmgr_** constraints the number of concurrent goroutines to be more more than the **_dop_** value. 
+The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles used in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call which will wait for a response from the **_grmgr_** service before continuing.  It will immediately unblock when the number of running **_processDP_** is less than or equal to the **_dop_** defined in New(). If the number is greater than the **_dop_** value it will wait until one of the **_processDP_** goroutines has finished. In this way **_grmgr_** constraints the number of concurrent goroutines to be no more than the **_dop_** value. 
 
-The code behind the Control() method illustrates the hidden channel communicate with the **_grmgr_** service. 
+The code behind the Control() method illustrates the encapsulated channel communicate with the **_grmgr_** service. 
 
 ```
 	func (l Limiter) Control() {
@@ -127,7 +127,7 @@ The code behind the Control() method illustrates the hidden channel communicate 
 	}
 ```
 
- A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). in this case it will block and wait for all the **_processDP_** goroutines to finish.
+ A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). in this case it will block and wait for any **_processDP_** goroutines that are still running to finish.
 
 ```
 	throttleDP.Wait() 
@@ -138,6 +138,8 @@ When a Throttle is no longer needed it should be deleted using:
 
 ```
 	throttleDP.Delete()
+```
+
 ## Modifying your parallel function to work with grmgr.
 
 The function must accept a grmgr throttle instance and include the following line of code, usually placed at or near the top of the function.
