@@ -59,11 +59,11 @@ The initial benefit is reduced coding effort when implementing a **_dop_** - as 
 That is the big picture view of **_grrmgr_**. In its current guise it has no hooks into any system monitors or dashboards. However when operating in the cloud this is simple a matter of engaging one or two API calls. In the case of AWS, for example, adding a single API from the SNS service to **_grrmgr_** is all that is necessary for **_grrmgr_** to be a target for any configured CloudWatch alerts. So easy.  
 
 
-## **_grrmgr_** Setup
+## **_grmgr_** Startup and Shutdown
 
-**_grrmgr_** runs as a "background service" to the application, which simply means it runs as a goroutine. It would typically be started as part of the application initialisation and shutdown just before the application exits. 
+**_grmgr_** runs as a "background service" to the application, which simply means it runs as a goroutine. It would typically be started as part of the application initialisation and shutdown just before the application exits. 
 
-A **_grrmgr_** service is started using the **_PowerOn()_** method, which accepts a Context and two WaitGroup instances.
+A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts a Context and two WaitGroup instances.
 
 
 ```
@@ -75,7 +75,7 @@ A **_grrmgr_** service is started using the **_PowerOn()_** method, which accept
 	ctx, cancel := context.WithCancel(context.Background())    // create a context.
 
 
- 	go grrmgr.PowerOn(ctx, &wpStart, &wpEnd)                   // start **_grrmgr_** as a goroutine
+ 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)                   // start **_grmgr_** as a goroutine
 
 ```
 
@@ -87,37 +87,37 @@ To shutdown the service execute the cancel function generated using the **_WithC
 	cancel() 
 ```
 
-All communication with the **_grrmgr_** service uses channels which have been encapsulated in the **_grmgr_** method calls, so the developer does not use any channels explicitly.  
+All communication with the **_grmgr_** service uses channels which have been encapsulated in the **_grmgr_** method calls, so the developer does not use any channels explicitly.  
 
 
-## Creating a **_grmgr_** Throttle
+## Using grmgr to manage a parallel task
 
-The code example below has introduced **_grmgr_** to the example from Section 1. Note the developer no longer needs to create a counter and channel, both of which have been encapsulated by **_grrmgr_**.
+The code example below has introduced **_grmgr_** to the example from Section 1. Note that the developer no longer needs to create a counter and channel as both have been encapsulated into **_grmgr_**.
 
 
 ```
 	. . .
-	throttleDP := **_grrmgr_**.New("data-propagation", 10)  // create a throttler & set max concurrent to 10.
+	throttleDP := grmgr.New("data-propagation", 10)  // create a throttle with dop 10
 	
-	for node := range ch {                     // wait for node data on channel.
+	for node := range ch {                     
 	
-		throttleDP.Control()               // wait for a response from **_grrmgr_** to proceed.
-			
-		go processDP(throttleDP, node)     // non-blocking. Instantiate processDP as a goroutine. 
+		throttleDP.Control()               	// wait for a response from grmgr
+				
+		go processDP(throttleDP, node)      
 
 	}
 
-	throttleDP.Wait()                          // wait for all processDP goroutines to finish.
+	throttleDP.Wait()                          	// wait for all parallelDP's to finish
 
 	. . .
 	
-	throttle.Delete()                          // delete the throttle from grmgr 
+	throttle.Delete()                          	// delete the throttle
 
 ```
 
-The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all **_grmgr throttles_** defined in the appplication, and a **_dop_** value. The throttling capability is handled by the **_Control(_**) method. It is a blocking call which will wait for a response from **_grrmgr_** service before continuing.  It will immediately unblock when the number of concurrent **_processDP_** groutines is less than or equal to **_dop_**, define in New(). If the number of concurrent **_processDP_** is equal to the **_dop_** then it will wait until one of the goroutines has finished. In this way **_grrmgr_** constraints the number of concurrent goroutines to the **_dop_** value defined in New(). 
+The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles_** defined in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call which will wait for a response from **_grmgr_** service before continuing.  It will immediately unblock when the number of concurrent **_processDP_** groutines is less than or equal to **_dop_**, define in New(). If the number of concurrent **_processDP_** is equal to the **_dop_** then it will wait until one of the goroutines has finished. In this way **_grmgr_** constraints the number of concurrent goroutines to the **_dop_** value defined in New(). 
 
-The code behind the Control() method illustrates the channel communicate with the **_grrmgr_** service. 
+The code behind the Control() method illustrates the channel communicate with the **_grmgr_** service. 
 
 ```
 	func (l Limiter) Control() {
