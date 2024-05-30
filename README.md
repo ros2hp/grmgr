@@ -128,7 +128,7 @@ The code behind the Control() method illustrates the encapsulated channel commun
 	}
 ```
 
- A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). in this case it will block and wait for any **_processDP_** goroutines that are still running to finish.
+ A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). In this case it will block and wait for all **_processDP_** goroutines that are still running to finish.
 
 ```
 	throttleDP.Wait() 
