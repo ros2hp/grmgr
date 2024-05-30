@@ -94,7 +94,7 @@ All communication with the **_grmgr_** service uses channels which have been enc
 
 ## Using grmgr to manage a parallel task
 
-The code example below has introduced **_grmgr_** to the example from Section 1. Note that the developer no longer needs to create a counter and channel as both have been encapsulated into **_grmgr_**.
+The code example below has introduced **_grmgr_** to the example from Section 1. Note the lack of counter and channel as both have been encapsulated into **_grmgr_**.
 
 
 ```
