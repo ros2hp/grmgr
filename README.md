@@ -67,7 +67,7 @@ A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts
 
 
 ```
-	var wpStart, wpEnd sync.WaitGroup                          // create a pair of WaitGroups
+	var wpStart, wpEnd sync.WaitGroup                          // create a pair of WaitGroups instances
 
 	wpStart.Add(?)                                             // define a value for each WaitGroup
 	wpEnd.Add(?)
@@ -75,7 +75,8 @@ A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts
 	ctx, cancel := context.WithCancel(context.Background())    // create a context.
 
 
- 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)                   // start **_grmgr_** as a goroutine
+ 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)                    // start grmgr as a goroutine
+
 
 ```
 
@@ -115,9 +116,9 @@ The code example below has introduced **_grmgr_** to the example from Section 1.
 
 ```
 
-The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles_** defined in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call which will wait for a response from **_grmgr_** service before continuing.  It will immediately unblock when the number of concurrent **_processDP_** groutines is less than or equal to **_dop_**, define in New(). If the number of concurrent **_processDP_** is equal to the **_dop_** then it will wait until one of the goroutines has finished. In this way **_grmgr_** constraints the number of concurrent goroutines to the **_dop_** value defined in New(). 
+The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles used in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call which will wait for a response from the **_grmgr_** service before continuing.  It will immediately unblock when the number of running **_processDP_** groutines is less than or equal to the **_dop_** defined in New(). If the number of running **_processDP_** is greater then it will wait until one of the goroutines has finished. In this way **_grmgr_** constraints the number of concurrent goroutines to be more more than the **_dop_** value. 
 
-The code behind the Control() method illustrates the channel communicate with the **_grmgr_** service. 
+The code behind the Control() method illustrates the hidden channel communicate with the **_grmgr_** service. 
 
 ```
 	func (l Limiter) Control() {
@@ -137,8 +138,6 @@ When a Throttle is no longer needed it should be deleted using:
 
 ```
 	throttleDP.Delete()
-```
-
 ## Modifying your parallel function to work with grmgr.
 
 The function must accept a grmgr throttle instance and include the following line of code, usually placed at or near the top of the function.
