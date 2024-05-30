@@ -61,41 +61,33 @@ That is the big picture view of **_grrmgr_**. In its current guise it has no hoo
 
 ## **_grrmgr_** Setup
 
-**_grrmgr_** runs as a "background service" to the application. This simply means it runs as a goroutine which is typically started as part of the application initialisation and shutdown just before the application exits. 
+**_grrmgr_** runs as a "background service" to the application, which simply means it runs as a goroutine. It would typically be started as part of the application initialisation and shutdown just before the application exits. 
 
-To start the *_grrmgr_** service, use the following:
+A **_grrmgr_** service is started using the **_PowerOn()_** method:
 
 
 ```
-	go **_grrmgr_**.PowerOn(ctx, &wpStart, &wpEnd)   
-```
+	var wpStart, wpEnd sync.WaitGroup                          // create a pair of WaitGroups
 
-
-You will notice the **_grrmgr.PowerOn_** function accepts a Go context, and two instances of a Go WaitGroup. 
-
-
-A  example:
-
-```
-	var wpStart, wpEnd sync.WaitGroup                           // create a pair of WaitGroups
-
-	wpStart.Add(?)                                              // define a value for each WaitGroup
+	wpStart.Add(?)                                             // define a value for each WaitGroup
 	wpEnd.Add(?)
 
-	ctx, cancel := context.WithCancel(context.Background())     // create a std package context with cancel function.
+	ctx, cancel := context.WithCancel(context.Background())    // create a std package context with cancel function.
 
- 	go **_grrmgr_**.PowerOn(ctx, &wpStart, &wpEnd)              // start **_grrmgr_**
+
+ 	go grrmgr.PowerOn(ctx, &wpStart, &wpEnd)                   // start **_grrmgr_** as a goroutine
+
 ```
 
 
-To shutdown the service simply execute the cancel function generated from the Go's standard library Context package:
+To shutdown the service execute the cancel function generated from the **_WithCancel_** method used to create the context that was passed into the PowerOn().
 
 
 ```
 	cancel() 
 ```
 
-All communication with the **_grrmgr_** service is via channels. One channel is used to send all requests to **_grrmgr_**, another is the context cancel channel and there is one channel for per **_dop_** instance. However the developer does not communicate with channels directly, all channel communication is hidden behind **_grrmgr_** method calls.  
+All communication with the **_grrmgr_** service is via channels which have been encapsulated in all **_grmgr_** method calls. 
 
 ## Creating a **_grmgr_** Throttle
 
