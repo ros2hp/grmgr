@@ -46,19 +46,15 @@ To introduce some control over the **_dop_** of the **_parallelTask_** is fortun
 
 ```
 
-Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent parallelTasks so it never exceeds 100. However what if we want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
+Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent **_parallelTasks_** so it never exceeds 100. However what if we want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
 
-## Why grmgr?
+## Auto-Scale of an Application using Dynamic Throttling
 
-**_grmgr_** is only relevant to application's that employ some level of parallel computing. The more parallel components an application employees the bigger the potential benefits of **_grmgr_** .
+**_grmgr_** has the ability to **_dynamic throttling_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application scaling event. The event might be sourced from a server monitor that has been triggered by a CPU or memory alarm, or an internal application monitor responding to a queue size alarm. The ability to scale an application dynamically in real-time represents a powerful system's management capability and means the application's resource consumption can be varied to better align it with other applications running on the server, making it a good neighbour program. 
 
-The initial benefit is reduced coding effort when implementing a **_dop_** - as evident from the coding examples below. However, the biggest benefit will be the dynamic throttling capability **_grmgr_** adds to an application, as alluded to in the previous section. The application now has some auto-scaling capability.  Using **_grmgr_** it can respond, in realtime, to any scale up or scale down event sent from a monitoring agent, either internal or external to the application.  For example, a system monitor could send a scale down message to an application in response to a CPU overload alert. Similarly, the system monitor could send a "scale up" message to the application during periods of lower CPU usage.  When an internal application metric is exceeded, such as the number of entries in an input buffer, the  application can immediately respond by sending a "scale up" event to **_grmgr_** which would then apply more appropriate **_dop_** levels to all or some key parallel components. 
+The current version of **_grmgr_** has no hooks into system monitors. However for applications running in the cloud this would be very simple matter of identifying the relevant cloud service and engaging with the API. In the case of AWS, *_grmgr_**  would only need to implement a single API from the SNS service which would give it the ability to respond to CloudWatch scaling alerts. Too easy. 
 
-**_grmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. 
-
-That is the big picture view of **_grmgr_**. In its current guise it has no hooks into system monitors or dashboards. However when operating in the cloud this is a simple matter of implementing one or two API calls for the relevant services offered by the cloud vendor. In the case of AWS, for example, implementing a single API from the SNS service into **_grmgr_** is all that is necessary to have the application respond to CloudWatch scaling alerts. Too easy. 
-
-
+**_grmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis.
 
 ## **_grmgr_** Startup and Shutdown
 
