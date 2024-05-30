@@ -192,7 +192,7 @@ To configure a non-default throttle use NewConfig().
 	
 
 
-** Modify the **_dop_** 
+## Modify the **_dop_** 
 
 Use the following methods on a throttle to vary the throttle's **_dop_** value based on the throttle configuration.
 
