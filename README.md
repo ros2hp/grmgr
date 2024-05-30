@@ -56,7 +56,7 @@ The initial benefit is reduced coding effort when implementing a **_dop_** - as 
 
 **_grmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. 
 
-That is the big picture view of **_grmgr_**. In its current guise it has no hooks into system monitors or dashboards. However when operating in the cloud this is simple a matter of engaging one or two API calls from the relevant services of the cloud vendor. In the case of AWS, for example, implementing a single API to the SNS service into **_grmgr_** is sufficient to get it responding to CloudWatch alerts. Too easy.  
+That is the big picture view of **_grmgr_**. In its current guise it has no hooks into system monitors or dashboards. However when operating in the cloud this is a simple a matter of engaging one or two API calls for the relevant services offered by the cloud vendor. In the case of AWS, for example, implementing a single API to the SNS service into **_grmgr_** is sufficient to the application responding to CloudWatch alerts. Too easy.  
 
 
 
