@@ -48,7 +48,7 @@ To introduce some control over the **_dop_** of the **_parallelTask_** is fortun
 
 Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent **_parallelTasks_** to never exceed 100. However what if we want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
 
-## Auto-Scale of an Application using Dynamic Throttling
+## Auto-Scaling an Application using Dynamic Throttling
 
 **_grmgr_** has the ability to **_dynamic throttling_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application scaling event. The event might be sourced from a server monitor that has been triggered by a CPU or memory alarm, or an internal application monitor responding to a queue size alarm. The ability to scale an application dynamically in real-time represents a powerful system's management capability and means the application's resource consumption can be varied to better align it with other applications running on the server, making it a good neighbour program. 
 
