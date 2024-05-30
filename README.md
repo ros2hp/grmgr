@@ -63,7 +63,7 @@ That is the big picture view of **_grrmgr_**. In its current guise it has no hoo
 
 **_grrmgr_** runs as a "background service" to the application, which simply means it runs as a goroutine. It would typically be started as part of the application initialisation and shutdown just before the application exits. 
 
-A **_grrmgr_** service is started using the **_PowerOn()_** method:
+A **_grrmgr_** service is started using the **_PowerOn()_** method, which accepts a Context and two WaitGroup instances.
 
 
 ```
@@ -72,7 +72,7 @@ A **_grrmgr_** service is started using the **_PowerOn()_** method:
 	wpStart.Add(?)                                             // define a value for each WaitGroup
 	wpEnd.Add(?)
 
-	ctx, cancel := context.WithCancel(context.Background())    // create a std package context with cancel function.
+	ctx, cancel := context.WithCancel(context.Background())    // create a context.
 
 
  	go grrmgr.PowerOn(ctx, &wpStart, &wpEnd)                   // start **_grrmgr_** as a goroutine
@@ -80,14 +80,15 @@ A **_grrmgr_** service is started using the **_PowerOn()_** method:
 ```
 
 
-To shutdown the service execute the cancel function generated from the **_WithCancel_** method used to create the context that was passed into the PowerOn().
+To shutdown the service execute the cancel function generated using the **_WithCancel_** method used to create the context that was passed into the **_PowerOn()_**.
 
 
 ```
 	cancel() 
 ```
 
-All communication with the **_grrmgr_** service is via channels which have been encapsulated in all **_grmgr_** method calls. 
+All communication with the **_grrmgr_** service uses channels which have been encapsulated in the **_grmgr_** method calls, so the developer does not use any channels explicitly.  
+
 
 ## Creating a **_grmgr_** Throttle
 
