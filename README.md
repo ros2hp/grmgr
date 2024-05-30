@@ -46,7 +46,7 @@ To introduce some control over the **_dop_** of the **_parallelTask_** is fortun
 
 ```
 
-Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent **_parallelTasks_** so it never exceeds 100. However what if we want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
+Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent **_parallelTasks_** to never exceed 100. However what if we want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
 
 ## Auto-Scale of an Application using Dynamic Throttling
 
