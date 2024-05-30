@@ -21,7 +21,7 @@ The code fragment below presents a naive implementation of the parallel processi
 	. . .
 ```
 
-The repercussions of a potentially unlimited **_dop_** should be obvious. It has the potential to place a strain on the server resources like CPU or memory when the **_dop_** is very high. If the task performs a database request it may also exceed the number of database connections at the database or in the application's pool of connections. The variable and unpredictable and potentially hostile consumption of system and database resources therefore makes it an anti-social application that cannot safely coexist with other applications.
+The repercussions of a running a large number of concurrent **_parallelTask'_**s should be obvious. It has the potential to overwhelm the server's CPU, io or memory resources. If the task performs a database request it then has the potential to exceed the number of database connections. The potential for a hostile takeover of system and/or database resources makes the this code dangerous and any application using it is unsafe to co-exist with other applications.
 
 To introduce some control over the **_dop_** of the **_parallelTask_** is fortunately quite easy. A common expression for this capability is **_throttling_**. To throttle this component is a matter of adding a "counter" and a  **_channel_**. The channel is used to send a "finished" message from **_parallelTask_**.
 
