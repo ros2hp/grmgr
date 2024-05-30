@@ -2,14 +2,13 @@
 
 ## Concurrent Programming and grmgr?
  
- 
-There are two distinct patterns in concurrent programming, both of which are readily implemented using Go's CSP features, **_goroutines_** and **_channels_**. The first pattern is the **_process pipeline_**, which splits some processing logic into smaller units, where each unit is executed in its own goroutine which is then linked via channels to the next goroutine forming a pipeline of goroutines that in aggregate perform the complete processing logic on the data. Data is then passed from one goroutine to the next goroutine via a channel until it exists the pipeline. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of concurrent goroutines each performing the identical processing logic. The number of **_goroutines_** that are concurrently running is a measure of the components parallelism. This is usually constrained to not exceed some maximum value which is then termed the **_degree of parallelism_**  (dop) of the component. An application may consist of many components employing the parallel patter, each configured with its own **_dop_**.  
+There are two distinct patterns in concurrent programming, both of which are readily implemented using Go's CSP features, **_goroutines_** and **_channels_**. The first pattern is the **_process pipeline_**, which splits some processing logic into smaller units and deploys each unit as a goroutine linked together using channels to form a pipeline. Data is then passed from one goroutine to the next goroutine in the pipeline via the local channel until the data exits the pipeline in fully processed state. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of concurrent goroutines each performing the identical processing logic. The number of **_goroutines_** that are concurrently running is a measure of the components parallelism. This is usually constrained to not exceed some maximum value which is then termed the **_degree of parallelism_**  (dop) of the component. An application may consist of many components employing the parallel pattern, each configured with its own **_dop_**. 
 
-Both concurrent programming patterns enable an application to scale across multiple CPUs/cores. However, some scaling can also be achieved on single cpu/core systems when there are blocking operations, like file io or database requests, involved.  
+Both concurrent patterns enable an application to scale across multiple CPUs/cores. However, some scaling may also be possible on single cpu/core systems if there are blocking operations, like file io or database requests, involved.  
 
-**_grmgr_** is not concerned with pipelines. grmgr is used in parallel processing patterns to enforce the **_degree of parallelism_** of the component. For example, it is possible to configure grmgr to maintain a **_dop_** of 20 for a component and it will ensure the application cannot allocate more than 20 concurrent instances of the function.  
+**_grmgr_** is not concerned with pipelines. **_grrmgr_** is used in parallel processing patterns to enforce the **_degree of parallelism_** of the component. For example, it is possible to configure **_grrmgr_** to maintain a **_dop_** of 20 for a component and it will ensure the application cannot allocate more than 20 concurrent instances of the function.  
 
-Let's look at a coding example using the parallel processing pattern when not using grmgr. The code fragment below presents a naive example of parallel processing as it will instantiate an unknown number of concurrent **_parallelTask_** functions. The **_dop_** of the operation will depend on how many nodes are queued in the channel at any point in time and how long the paralleTask operations takes to run. For this reason the **_dop_** may vary from 0 to a large unknown number throughout the life of the application. For this reason the code is considered naive as there is no checks or control over how many **_parallelTask_** are running before the next loop instantiates another. 
+The code fragment below presents a naive implementation of the parallel processing pattern when not using **_grrmgr_**. You will note in the for-loop it does not implement any checks over the number of concurrent **_parallelTask_** that are running before the next execution of the loop instantiates another one. The **_dop_** of this operation will depend on the number of nodes queued in the channel buffer, at any point in time, and how long the parallelTask operations take to run. For this reason the **_dop_** may vary from 0 to an unknown and potentially very large number. 
 
 ```	. . .
 	var channel = make(chan,node)
@@ -22,25 +21,24 @@ Let's look at a coding example using the parallel processing pattern when not us
 	. . .
 ```
 
-
-The repercussions of a potentially unlimited **_dop_** should be pretty obvious. It has the potential to place a strain on the server resources like CPU or memory when the **_dop_** is very high. At any point it may also  exceed the number of database connections if a database request is performed in the operation. The variable and unpredictable and potentially hostile consumption of system and database resources therefore makes it an anti-social application that cannot safely coexist with other applications.
+The repercussions of a potentially unlimited **_dop_** should be obvious. It has the potential to place a strain on the server resources like CPU or memory when the **_dop_** is very high. If the task performs a database request it may also exceed the number of database connections at the database or in the application's pool of connections. The variable and unpredictable and potentially hostile consumption of system and database resources therefore makes it an anti-social application that cannot safely coexist with other applications.
 
 To introduce some control over the **_dop_** of the **_parallelTask_** is fortunately quite easy. A common expression for this capability is **_throttling_**. To throttle this component is a matter of adding a "counter" and a  **_channel_**. The channel is used to send a "finished" message from **_parallelTask_**.
 
 ```
 	. . .
-	const MAX_CONCURRENT = 100                  // throttle parallelTask to a maximum ot 100 concurrent instances
-	var channel = make(chan,message)            // create a Go channel to send back finish message from parallelTask
+	const MAX_CONCURRENT = 100              // throttle parallelTask to a maximum ot 100 concurrent instances
+	var channel = make(chan,message)        // create a Go channel to send back finish message from parallelTask
 	task_counter := 0                 
 
 	for node := range channel {
 
-		go parallelTask(node, channel)      // instantiate parallelTask as a goroutine. Pass in the channel.
+		go parallelTask(node, channel)  // instantiate parallelTask as a goroutine. Pass in the channel.
 		task_counter++
 
 		if task_counter == MAX_CONCURRENT {
 
-			<-channel                       // block and wait for a finish message from any one of the running parallelTask's
+			<-channel               // block and wait for a finish message from any one of the running parallelTask's
 			task_counter--
 		}
 	}
@@ -48,69 +46,85 @@ To introduce some control over the **_dop_** of the **_parallelTask_** is fortun
 
 ```
 
-Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent parallelTasks to not exceed 100. However what if you want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
+Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent parallelTasks so it never exceeds 100. However what if we want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
 
 ## Why grmgr?
 
-The first benefit to using **_grmgr_** is reduced coding effort when implementing a **_dop_** for each parallel component in an application. However its main benefit may be that it provides the dynamic throttling  capability mentioned at the end of the previous section. Adjusting the **_dop_** of each component, up or down, in realtime, while the application is running is now achievable. When a scale down event is triggered in some way, the application can be made to respond, over a brief period, and stabilise to the lower **_dop_** values set and enforced by grmgr. 
+**_grrmgr_** is only relevant to application's that employ some level of parallel computing. The more parallel components an application employees the bigger the potential benefits of **_grmgr_** .
 
-The ability for an application to dynamical scale, up or down, would be very useful for a system monitor so it can respond to some system event autonomously.  
+The initial benefit is reduced coding effort when implementing a **_dop_** - as evident from the coding examples below. However, the biggest benefit, may be, that it adds the dynamic throttling capability to an application as mentioned in the previous section. When using **_grrmgr_**, an application can respond, in realtime, to any scale up or scale down event sent from some monitoring agent, either internal or external to the application.  For example, a system monitor could send a scale down message to an application in response to a CPU overload alert. Similarly, the system monitor could send a "scale up" message to the application during periods of lower CPU usage.  When an internal application metric is exceeded, such as the number of entries in an input buffer, the  application can immediately respond by sending a "scale up" event to **_grrmgr_** which would then apply more appropriate **_dop_** levels to all or some key parallel components. 
 
-**_grmgr_** could also be used to send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. 
+**_grrmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. 
 
-The ability to control an application's data throughput and its resource consumption, by changing the **_dop_** levels of an application, means **_grmgr_** can make a significant contribution to an application's sociability. 
+That is the big picture view of **_grrmgr_**. In its current guise it has no hooks into any system monitors or dashboards. However when operating in the cloud this is simple a matter of engaging one or two API calls. In the case of AWS, for example, adding a single API from the SNS service to **_grrmgr_** is all that is necessary for **_grrmgr_** to be a target for any configured CloudWatch alerts. So easy.  
 
-That is the big picture view of **_grmgr_**. In its current guise it cannot respond to external systems such as system monitor or dashboard. While it can do dynamic throttling, responding to event that would make use of this capability are currently not implemented.
 
-## Coding Examples using grmgr
+## **_grrmgr_** Setup
 
-In the code snippet below we have the same scenario from the previous example but this time written using **_grmgr_** to throttle the number of concurrent goroutines. Note how we don't have to create a channel or a counter. The throttle has subsumed this functionality internally.
+**_grrmgr_** runs as a "background service" to the application. This simply means it runs as a goroutine which is typically started as part of the application initialisation and shutdown just before the application exits. 
+
+To start the *_grrmgr_** service, use the following:
+
+
+```
+	go **_grrmgr_**.PowerOn(ctx, &wpStart, &wpEnd)   
+```
+
+
+You will notice the **_grrmgr.PowerOn_** function accepts a Go context, and two instances of a Go WaitGroup. 
+
+
+A  example:
+
+```
+	var wpStart, wpEnd sync.WaitGroup                           // create a pair of WaitGroups
+
+	wpStart.Add(?)                                              // define a value for each WaitGroup
+	wpEnd.Add(?)
+
+	ctx, cancel := context.WithCancel(context.Background())     // create a std package context with cancel function.
+
+ 	go **_grrmgr_**.PowerOn(ctx, &wpStart, &wpEnd)              // start **_grrmgr_**
+```
+
+
+To shutdown the service simply execute the cancel function generated from the Go's standard library Context package:
+
+
+```
+	cancel() 
+```
+
+All communication with the **_grrmgr_** service is via channels. One channel is used to send all requests to **_grrmgr_**, another is the context cancel channel and there is one channel for per **_dop_** instance. However the developer does not communicate with channels directly, all channel communication is hidden behind **_grrmgr_** method calls.  
+
+## Creating a **_grmgr_** Throttle
+
+The code example below has introduced **_grmgr_** to the example from Section 1. Note the developer no longer needs to create a counter and channel, both of which have been encapsulated by **_grrmgr_**.
 
 
 ```
 	. . .
-	throttleDP := grmgr.New("data-propagation", 10)  // create a grmgr throttle - set max concurrent to 10.
+	throttleDP := **_grrmgr_**.New("data-propagation", 10)  // create a throttler & set max concurrent to 10.
 	
 	for node := range ch {                     // wait for node data on channel.
 	
-		throttleDP.Control()               // wait for a response from grmgr to proceed.
+		throttleDP.Control()               // wait for a response from **_grrmgr_** to proceed.
 			
 		go processDP(throttleDP, node)     // non-blocking. Instantiate processDP as a goroutine. 
 
 	}
 
 	throttleDP.Wait()                          // wait for all processDP goroutines to finish.
+
 	. . .
-```
-
-The Control() method will block and wit on a message from **_grmgr_** to proceed. **_grmgr_** will only send a message when the number of concurrent groutines is less than or equal to the max concurrent defined for the throttle. When any of the **_processDP_** goroutines finish Control() will be immedidately unblocked.
-In this way **_grmgr_** can maintain a fixed number of concurrent goroutines. A Throttle also comes with a Wait() method, which emulates the sync.Wait() from the Standard Library. in this case it will wait for all the **_processDP_** goroutines to finish.
-
-## Architecture and Setup
-
-**_grmgr_** runs as a background "service" to the application. This simply means it runs as a goroutine which is typically started as part of the application initialisation and shutdown just before the application exits. 
-
-Before using  **_grmgr_**  the service must be started:
+	
+	throttle.Delete()                          // delete the throttle from grmgr 
 
 ```
-	var wpStart, wpEnd sync.WaitGroup                              // create a pair of WaitGroups
-	wpStart.Add(?)                                                 
-	wpEnd.Add(?)
 
-	ctx, cancel := context.WithCancel(context.Background())         // create a std package context with cancel function.
+The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all **_grmgr throttles_** defined in the appplication, and a **_dop_** value. The throttling capability is handled by the **_Control(_**) method. It is a blocking call which will wait for a response from **_grrmgr_** service before continuing.  It will immediately unblock when the number of concurrent **_processDP_** groutines is less than or equal to **_dop_**, define in New(). If the number of concurrent **_processDP_** is equal to the **_dop_** then it will wait until one of the goroutines has finished. In this way **_grrmgr_** constraints the number of concurrent goroutines to the **_dop_** value defined in New(). 
 
- 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)                         // start grmgr as a goroutine
-```
-
-To shutdown the **_grmgr_** service simply issue the cancel function generated via the context package:
-
-```
-	cancel() 
-```
-
-All communication with the **_grmgr_** service is via channels that are encapsulated within various methods of a throttle instance, created using the grmgr.New() function. In this way access to the parallelism state of each goroutine is serialised and **_grmgr_** is therefore concurrency safe.
-
-The code behind the Control() method  illustrates the use of channels to communicate with the **_grmgr_** service. 
+The code behind the Control() method illustrates the channel communicate with the **_grrmgr_** service. 
 
 ```
 	func (l Limiter) Control() {
@@ -118,22 +132,36 @@ The code behind the Control() method  illustrates the use of channels to communi
 		<-l.ch
 	}
 ```
+
+ A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). in this case it will block and wait for all the **_processDP_** goroutines to finish.
+
+```
+	throttleDP.Wait() 
+```     
+
  
-When a Throttle is nolonger needed it should be deleted:
+When a Throttle is no longer needed it should be deleted using:
 
 ```
 	throttleDP.Delete()
 ```
 
-A goroutine that is under the control of **_grmgr_** accepts a Limiter as an argument. Execute the __Done()__ method when the goroutine is finished.
+## Modifying your parallel function to work with grmgr.
+
+The function must accept a grmgr throttle instance and include the following line of code, usually placed at or near the top of the function.
+
 
 ```
 	defer limiterDP.Done()
 ```
 
-To configure a logger for __grmgr__ use the following:
+The Done() method will notify grmgr that the goroutine has finished.
+
+
+
+To configure a logger for __**_grrmgr_**__ use the following:
 ```
-	grmgr.SetLogger(<logger>, <log level>) 
+	**_grrmgr_**.SetLogger(<logger>, <log level>) 
 ```
 Available log levels are:
 ```
@@ -144,73 +172,50 @@ Available log levels are:
 	)
 ```
 
- **_grmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
- **_grmgr_** without reporting is recommended for all use cases outside of grmgr development.
+## Compiler Options
 
-The following code snippet illustrates a complete end-to-end use of the **_grmgr_** service.
+ **_grrmgr_** comes in two editions, one which captures runtime metadata to a database in near realtime (build tag "withstats") and one without metadata reporting (no tag).
 
-```
-		// create a context
-		ctx, cancel := context.WithCancel(context.Background())
-		
-		// optional: send a logger and log level to grmgr 
-		grmgr.SetLogger(logr, grmgr.Alert)
-		
-		// start grmgr service
-		go grmgr.PowerOn(ctx, wpStart, wpEnd) 
-		
-		// create a limiter for DP process setting the ceiling to 10.
-		limiterDP := grmgr.New("dp", 10)
-		
-		for node := range ch {
-			
-			// may block and wait for number of concurrent instances of goroutine 'processDP' to drop below ceiling.
-			limiterDP.Control()
-			
-			go processDP(limiterDP, node)
-		}
-		// wait for the last of the DP goroutines to finish
-		limiterDP.Wait()
-		
-		// free up limiter
-		limiterDP.Delete()
-		
-		. . .
-		
-		// shudown grmgr service (and all other services that use the context)
-		cancel()
-		
-		
-```
 
-## Limiter Throttle
+## Configuring the Throttle
 
 To configure a non-default throttle use NewConfig()
-```
-// NewConfig - configure a Limiter with non-default throttle settings
-// r : limiter name
-// c : ceiling value (also the maximum value for the throttle)
-// down : adjust current ceiling down by specified value
-// up :   adjust current ceiling up by specified value
-// min : minimum value for ceiling
-// h : hold any change for this duration (in a string value that can be converted to time.Duration) e.g. "5s" for five seconds
 
-func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*Limiter, error) {
 
 ```
+	// NewConfig - configure a Limiter with non-default throttle settings
+	// r : limiter name
+	// c : ceiling value (also the maximum value for the throttle)
+	// down : adjust current ceiling down by specified value
+	// up :   adjust current ceiling up by specified value
+	// min : minimum value for ceiling
+	// h : hold any change for this duration (in a string value that can be converted to time.Duration) e.g. "5s" for five seconds
+
+	func NewConfig(r string, c Ceiling, down int, up int, min Ceiling, h string) (*Limiter, error) {
+
+``
+	
 The New() constructor for Limiter will create a default throttle.
+
+
 ```
-// New() - configure a Limiter with default throttle settings
-// r : limiter name
-// c : ceiling 
-// min : minimum value for ceiling [default 1]
-func New(r string, c Ceiling, min ...Ceiling) *Limiter {
+	// New() - configure a Limiter with default throttle settings
+	// r : limiter name
+	// c : ceiling 
+	// min : minimum value for ceiling [default 1]
+	func New(r string, c Ceiling, min ...Ceiling) *Limiter {
 
 	 NewConfig(r, c, 2, 1, m, "30s")
 ```
-The associated throttle methods for a Limiter, l:
-```
-	l.Up()
 
-	l.Down()
+
+** Modify the **_dop_** 
+
+Use the filling method calls on a throttle to modify the associated **_op_** up or down
+
+
+```
+	Up()
+
+	Down()
 ```
