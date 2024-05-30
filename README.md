@@ -50,13 +50,14 @@ Using no more than a counter and a channel, the above code has stabilised the co
 
 ## Why grmgr?
 
-**_grrmgr_** is only relevant to application's that employ some level of parallel computing. The more parallel components an application employees the bigger the potential benefits of **_grmgr_** .
+**_grmgr_** is only relevant to application's that employ some level of parallel computing. The more parallel components an application employees the bigger the potential benefits of **_grmgr_** .
 
-The initial benefit is reduced coding effort when implementing a **_dop_** - as evident from the coding examples below. However, the biggest benefit, may be, that it adds the dynamic throttling capability to an application as mentioned in the previous section. When using **_grrmgr_**, an application can respond, in realtime, to any scale up or scale down event sent from some monitoring agent, either internal or external to the application.  For example, a system monitor could send a scale down message to an application in response to a CPU overload alert. Similarly, the system monitor could send a "scale up" message to the application during periods of lower CPU usage.  When an internal application metric is exceeded, such as the number of entries in an input buffer, the  application can immediately respond by sending a "scale up" event to **_grrmgr_** which would then apply more appropriate **_dop_** levels to all or some key parallel components. 
+The initial benefit is reduced coding effort when implementing a **_dop_** - as evident from the coding examples below. However, the biggest benefit may be the dynamic throttling capability it adds to an application, as mentioned in the previous section. When using **_grmgr_**, an application can respond, in realtime, to any scale up or scale down event sent from some monitoring agent, either internal or external to the application.  For example, a system monitor could send a scale down message to an application in response to a CPU overload alert. Similarly, the system monitor could send a "scale up" message to the application during periods of lower CPU usage.  When an internal application metric is exceeded, such as the number of entries in an input buffer, the  application can immediately respond by sending a "scale up" event to **_grmgr_** which would then apply more appropriate **_dop_** levels to all or some key parallel components. 
 
-**_grrmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. 
+**_grmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. 
 
-That is the big picture view of **_grrmgr_**. In its current guise it has no hooks into any system monitors or dashboards. However when operating in the cloud this is simple a matter of engaging one or two API calls. In the case of AWS, for example, adding a single API from the SNS service to **_grrmgr_** is all that is necessary for **_grrmgr_** to be a target for any configured CloudWatch alerts. So easy.  
+That is the big picture view of **_grmgr_**. In its current guise it has no hooks into system monitors or dashboards. However when operating in the cloud this is simple a matter of engaging one or two API calls from the relevant services of the cloud vendor. In the case of AWS, for example, implementing a single API to the SNS service into **_grmgr_** is sufficient to get it responding to CloudWatch alerts. Too easy.  
+
 
 
 ## **_grmgr_** Startup and Shutdown
