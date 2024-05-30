@@ -113,7 +113,7 @@ The code example below has introduced **_grmgr_** to the example from Section 1.
 
 ```
 
-The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles used in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call which will wait for a response from the **_grmgr_** service before continuing.  It will immediately unblock when the number of running **_processDP_** is less than or equal to the **_dop_** defined in New(). If the number is greater than the **_dop_** value it will wait until one of the **_processDP_** goroutines has finished. In this way **_grmgr_** constraints the number of concurrent goroutines to be no more than the **_dop_** value. 
+The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles used in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call, meaning, it will wait for a response from the **_grmgr_** service before continuing.  **_grmgr_** will respond immediately when the number of running **_processDP_** is less than or equal to the **_dop_** defined in New(). If the number is greater than the **_dop_**  **_grmgr_** will not respond until one of the **_processDP_** has finished preventing another instantiate of the function. In this way **_grmgr_** constraints the number of concurrent **_goroutines_** from exceeding the **_dop_** for the parallel component. 
 
 The code behind the Control() method illustrates the encapsulated channel communicate with the **_grmgr_** service. 
 
