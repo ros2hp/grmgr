@@ -93,7 +93,7 @@ To shutdown the service execute the cancel function generated using the **_WithC
 All communication with the **_grmgr_** service uses channels which have been encapsulated in the **_grmgr_** method calls, so the developer does not use any channels explicitly.  
 
 
-## Using grmgr to manage a parallel task
+## Using grmgr to Manage a Parallel Component
 
 The code example below has introduced **_grmgr_** to the example from Section 1. Note the lack of counter and channel as both have been encapsulated into **_grmgr_**.
 
