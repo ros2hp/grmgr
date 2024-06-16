@@ -10,7 +10,7 @@ There are two distinct patterns in concurrent programming, both of which are rea
 
 ## Parallel Processing Examples in Go.
 
-The code fragment below presents a naive implementation of the parallel processing pattern. You will note there is no attempt to limit the number of concurrent **_parallelTask_** that are instantiated. The **_dop_** at any moment in time is dependent on two factors, one, the number of entries (nodes) queued in the channel buffer and secondly, how long the parallelTask operations takes to run. Consequently the program may generate a widely unpredicatable load on the server which is not good from the perspective of other programs running on the server.
+The code fragment below presents a naive implementation of the parallel processing pattern. You will note there is no attempt to limit the number of concurrent **_parallelTask_** that are instantiated. The **_dop_** at any moment in time is dependent on two factors, one, the number of entries (nodes) queued in the channel buffer and secondly, how long the parallelTask operations takes to run. Consequently the program may generate a widely unpredicatable load on the server which is not good from the perspective of other running programs.
 
 ```	. . .
 	var channel = make(chan,node)
@@ -48,15 +48,17 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 
 Using no more than a counter and a channel, the above code has stabilised the program by constraining the number of concurrent **_parallelTasks_** to never exceed 10. 
 
-**grmgr** takes **dop** management to the next level however, enabling the  **dop**  to dynamically increase or decrease under the influence of some external event and enable your application to dynamically scale to suite the prevailing system resources such as CPU, memory or IO.
+**grmgr** takes **dop** management to the next level however, enabling the  **dop**  to dynamically increase or decrease under the influence of some external event and enable your application to dynamically scale to suite the prevailing system resources.
 
 ## Auto-Scaling an Application using grmgr Dynamic Throttling
 
-As mentioned above, **_grmgr_** has the ability to **_dynamic throttle_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application or system scaling event. The event might be sourced from a system monitor that has been triggered by a CPU or memory alarm, or an internal application monitor responding to a queue size alarm. The ability to scale an application dynamically in real-time represents a powerful application management capability permitting an application's resource consumption to be better aligned  with other applications running on the server, making it a good neighbour program. 
+As mentioned, **_grmgr_** has the ability to **_dynamic throttle_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application or system scaling event. The ability to scale an application dynamically in real-time represents a powerful application management capability permitting an application's resource consumption to be aligned  with other applications running on the server. 
 
-The current version of **_grmgr_** has no hooks into system monitors. However for applications running in the cloud this would be very simple matter of identifying the relevant cloud service and engaging with the API. In the case of AWS, *_grmgr_**  would only need to implement a single API from the SNS service which would give it the ability to respond to CloudWatch scaling alerts. Too easy. 
+**_grmgr_** has no hooks into system monitors that might be used to trigger scale up or down events, however for applications running in the cloud all that is required is to identify the relevant cloud service and engage with its API. In the case of AWS for example, *_grmgr_**  would only need to implement a single API from the SNS service which would give it the ability to respond to CloudWatch scaling alerts. Very easy. 
 
-**_grmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis.
+**_grmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. **_grmgr_** has its own internal **_dop_** monitor for each parallel component which is persisted to Dynamodb every few seconds.
+
+Scaling events are sent to **_grmgr_** via a dedicated channel. The message includes the identifier for the parallel component and a type of scaling event, either a fixed value or an identifer for a predefined scaling up or down profile.  
 
 ## **_grmgr_** Startup and Shutdown
 
