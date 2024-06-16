@@ -48,7 +48,7 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 
 Using no more than a counter and a channel, the above code has stabilised the program by constraining the number of concurrent **_parallelTasks_** to never exceed 100. 
 
-** grmgr ** takes **dop** management to the next level, however, by enabling it to be dynamically increased or decreased under the influence of some external event and enable your application to dynamically scale to suite the prevailing system resources such as CPU or IO.
+**grmgr** takes **dop** management to the next level however, enabling the  **dop**  to dynamically increase or decrease under the influence of some external event and enable your application to dynamically scale to suite the prevailing system resources such as CPU, memory or IO.
 
 ## Auto-Scaling an Application using grmgr Dynamic Throttling
 
