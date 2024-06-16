@@ -2,13 +2,15 @@
 
 ## Concurrent Programming and grmgr?
  
-There are two distinct patterns in concurrent programming, both of which are readily implemented using Go's CSP features, **_goroutines_** and **_channels_**. The first pattern is the **_process pipeline_**, which splits some processing logic into smaller units and deploys each unit as a goroutine linked together using channels to form a pipeline. Data is passed from one goroutine to the next goroutine via their associated channel until the data exits the pipeline in its fully processed state. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of concurrent goroutines each performing the identical processing logic. The number of **_goroutines_** that are concurrently running is a measure of the components parallelism. This is usually constrained to not exceed some maximum value which is then termed the **_degree of parallelism_**  (dop) of the component. An application may consist of many components employing the parallel pattern, each configured with its own **_dop_**. 
+There are two distinct patterns in concurrent programming, both of which are readily implemented using Go's CSP features, **_goroutines_** and **_channels_**. The first pattern is the **_process pipeline_**, which splits some processing logic into smaller units and deploys each unit as a goroutine linked together by channels to form a processing pipeline. Data is passed from one goroutine to the next goroutine via their associated channel until the data exits the pipeline in its fully processed state. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of concurrent goroutines each performing the identical processing logic. The number of **_goroutines_** that are concurrently running is a measure of the components parallelism, termed the **_degree of parallelism_** (dop) of the component. This is usually constrained to not exceed some maximum value to safeguard the system resources. An application may consist of many components employing both forms of concurrent patterns as well as hybrids of each e.g. pipeline consisting of steps that use the parallel pattern to increase throughput. Both patterns enable a Go application to scale across multiple cores/cpus.  
 
-Both concurrent patterns enable an application to scale across multiple CPUs/cores. However, some scaling may also be possible on single cpu/core systems if there are blocking operations, like file io or database requests, involved.  
+**_grmgr_** is not concerned with pipelines, however it provides the parallel processing pattern with a throttle that can dynamically adjust, in realtime, the degree of parallelism of each parallel component from zero to a configured maximum value. For example, **_grmgr_** can enable a paralle component to maintain a maximum **_dop_** of 20 and then respond to some external event, such as a CPU overload event, by reducing the **_dop_** by half, until the CPU overload event has passed and the **_dop_** can return back to its original value using some predefined profile. 
 
-**_grmgr_** is not concerned with pipelines. **_grrmgr_** is used in parallel processing patterns to enforce the **_degree of parallelism_** of the component. For example, it is possible to configure **_grrmgr_** to maintain a **_dop_** of 20 for a component and it will ensure the application cannot allocate more than 20 concurrent instances of the function.  
+**_grmgr_** therefore enable your parallel components to intelligently scale by responding to external events such as system monitor alerts or a internal applicaiton alert, such, as increasing error rates in a subprocess that is related to throughput.
 
-The code fragment below presents a naive implementation of the parallel processing pattern when not using **_grrmgr_**. You will note in the for-loop it does not implement any checks over the number of concurrent **_parallelTask_** that are running before the next execution of the loop instantiates another one. The **_dop_** of this operation will depend on the number of nodes queued in the channel buffer, at any point in time, and how long the parallelTask operations take to run. For this reason the **_dop_** may vary from 0 to an unknown and potentially very large number. 
+## Parallel Processing Examples in Go.
+
+The code fragment below presents a naive implementation of the parallel processing pattern. You will note there is no attempt to limit the number of concurrent **_parallelTask_** that are instantiated. The **_dop_** at any moment in time is dependent on two factors. One, the number of entries (nodes) queued in the channel buffer and secondly, how long the parallelTask operations takes to run. Consequently the program may exhibit a widely unpredicatable load on the server which is not good from the perspective of other programs running on the server.
 
 ```	. . .
 	var channel = make(chan,node)
@@ -21,9 +23,7 @@ The code fragment below presents a naive implementation of the parallel processi
 	. . .
 ```
 
-The repercussions of a running a large number of concurrent **_parallelTask'_**s should be obvious. It has the potential to overwhelm the server's CPU, io or memory resources. If the task performs a database request it then has the potential to exceed the number of database connections. The potential for a hostile takeover of system and/or database resources makes the this code dangerous and any application using it is unsafe to co-exist with other applications.
-
-To introduce some control over the **_dop_** of the **_parallelTask_** is fortunately quite easy. A common expression for this capability is **_throttling_**. To throttle this component is a matter of adding a "counter" and a  **_channel_**. The channel is used to send a "finished" message from **_parallelTask_**.
+A relatively easy fix to the above is to constrain the number of **_parallelTask_** that can run concurrently to some maximum value. This is achieved by adding a "counter" and a  **_channel_**, to send a "finished" message back to the main program from each **_parallelTask_** goroutine.
 
 ```
 	. . .
@@ -46,9 +46,11 @@ To introduce some control over the **_dop_** of the **_parallelTask_** is fortun
 
 ```
 
-Using no more than a counter and a channel, the above code has stabilised the consumption of resources by constraining the number of concurrent **_parallelTasks_** to never exceed 100. However what if we want to vary the **_dop_** from 100 to 20, or 100 to 150, while the application is running? How might the developer introduce some level of **_dynamic throttling_** to the application? Hint, it's not trivial. 
+Using no more than a counter and a channel, the above code has stabilised the program by constraining the number of concurrent **_parallelTasks_** to never exceed 100. 
 
-## Auto-Scaling an Application using Dynamic Throttling
+** grmgr ** takes **dop** management to the next level, however, by enabling it to be dynamically increased or decreased under the influence of some external event and enable your application to dynamically scale to suite the prevailing system resources such as CPU or IO.
+
+## Auto-Scaling an Application using grmgr Dynamic Throttling
 
 **_grmgr_** has the ability to **_dynamic throttling_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application scaling event. The event might be sourced from a server monitor that has been triggered by a CPU or memory alarm, or an internal application monitor responding to a queue size alarm. The ability to scale an application dynamically in real-time represents a powerful system's management capability and means the application's resource consumption can be varied to better align it with other applications running on the server, making it a good neighbour program. 
 
