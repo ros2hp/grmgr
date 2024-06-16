@@ -56,28 +56,29 @@ As mentioned, **_grmgr_** has the ability to **_dynamic throttle_** each paralle
 
 **_grmgr_** has no hooks into system monitors that might be used to trigger scale up or down events, however for applications running in the cloud all that is required is to identify the relevant cloud service and engage with its API. In the case of AWS for example, *_grmgr_**  would only need to implement a single API from the SNS service which would give it the ability to respond to CloudWatch scaling alerts. Very easy. 
 
-**_grmgr_** could also send regular **_dop_** status reports to an "application dashboard" for display purposes or recording in a database for later analysis. **_grmgr_** has its own internal **_dop_** monitor for each parallel component which is persisted to Dynamodb every few seconds.
+**_grmgr_** can also send regular **_dop_** status reports to an "application dashboard". In fact **_grmgr_** has its own internal **_dop_** monitor for each parallel component which is persisted to a table in **_Dynamodb_** every few seconds.
 
-Scaling events are sent to **_grmgr_** via a dedicated channel. The message includes the identifier for the parallel component and a type of scaling event, either a fixed value or an identifer for a predefined scaling up or down profile.  
+Scaling events are sent to **_grmgr_** on a dedicated channel. The contents of the message includes the name of the parallel component and the type of scaling event, either a scalar  **_dop_* value to attain as quickly as possible or the name of a predefined scaling up or down profile.  If the message only contains a scaling event then all parallel components managed by  **_grmgr_** will be affected.
 
 ## **_grmgr_** Startup and Shutdown
 
-**_grmgr_** runs as a "background service" to the application, which simply means it runs as a goroutine. It would typically be started as part of the application initialisation and shutdown just before the application exits. 
+**_grmgr_** runs as a "asychronous background service" to the application, meaning it runs as a goroutine communicating with the outside world via a number of channels. It would typically be started as part of the application initialisation and shutdown just before the application exits.  Just like a http server, **_grmgr_** listens for requests received on multiple channels and responds to them serially.  This maintains the intergrity of **_grmgr_** state data as it handles requests from multiple parallel components and external systems concurrently.
 
 A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts a Context and two WaitGroup instances.
 
 
 ```
-	var wpStart, wpEnd sync.WaitGroup                          // create a pair of WaitGroups instances
+	var wpStart, wpEnd sync.WaitGroup       // create a pair of WaitGroups instances, that are used
+						// to synchronise the main program with the startup of each service. 
 
-	wpStart.Add(?)                                             // define a value for each WaitGroup
-	wpEnd.Add(?)
+	wpStart.Add(?)                         	// ? represents the number of services being started
+	wpEnd.Add(?)				// one of which will be grmgr.
+        . . .
+	ctx, cancel := context.WithCancel(context.Background())    // create a context. Used to terminate the grmgr service
 
-	ctx, cancel := context.WithCancel(context.Background())    // create a context.
-
-
- 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)                    // start grmgr as a goroutine
-
+ 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)  		   // start grmgr
+        . . .
+	wpStart.Wait()                          // wait for all servies to start.
 
 ```
 
