@@ -10,7 +10,7 @@ There are two distinct patterns in concurrent programming, both of which are rea
 
 ## Parallel Processing Examples in Go.
 
-The code fragment below presents a naive implementation of the parallel processing pattern. You will note there is no attempt to limit the number of concurrent **_parallelTask_** that are instantiated. The **_dop_** at any moment in time is dependent on two factors. One, the number of entries (nodes) queued in the channel buffer and secondly, how long the parallelTask operations takes to run. Consequently the program may exhibit a widely unpredicatable load on the server which is not good from the perspective of other programs running on the server.
+The code fragment below presents a naive implementation of the parallel processing pattern. You will note there is no attempt to limit the number of concurrent **_parallelTask_** that are instantiated. The **_dop_** at any moment in time is dependent on two factors, one, the number of entries (nodes) queued in the channel buffer and secondly, how long the parallelTask operations takes to run. Consequently the program may exhibit a widely unpredicatable load on the server which is not good from the perspective of other programs running on the server.
 
 ```	. . .
 	var channel = make(chan,node)
@@ -28,7 +28,7 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 ```
 	. . .
 	const MAX_CONCURRENT = 100              // throttle parallelTask to a maximum ot 100 concurrent instances
-	var channel = make(chan,message)        // create a Go channel to send back finish message from parallelTask
+	var channel = make(chan,message,MAX_CONCURRENT)   // channel to send back finish message
 	task_counter := 0                 
 
 	for node := range channel {
