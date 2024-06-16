@@ -90,7 +90,7 @@ To shutdown the service execute the cancel function generated using the **_WithC
 	cancel() 
 ```
 
-All communication with the **_grmgr_** service uses channels which have been encapsulated in the **_grmgr_** method calls, so the developer does not use any channels explicitly.  
+All communication with the **_grmgr_** service is via channels which have been encapsulated into all **_grmgr_** method calls. This means the developer never explicitly communicates with a channel.   
 
 
 ## Using grmgr to Manage a Parallel Component
