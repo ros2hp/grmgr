@@ -23,7 +23,7 @@ The code fragment below presents a naive implementation of the parallel processi
 	. . .
 ```
 
-A relatively easy fix to the above is to constrain the number of **_parallelTask_** that can run concurrently to some maximum value. This is achieved by adding a "counter" and a  **_channel_**, to send a "finished" message back to the main program from each **_parallelTask_** goroutine.
+A relatively easy fix to the above is to constrain the number of **_parallelTask_** that can run concurrently. This is achieved by adding a "counter", to count the number of instantiated goroutines, and a **_channel_**, to synchronise the completion of each **_parallelTask_** with the main program. 
 
 ```
 	. . .
