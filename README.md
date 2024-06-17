@@ -62,7 +62,7 @@ Scaling events are sent to **_grmgr_** on dedicated channels. The contents of th
 
 ## **_grmgr_** Startup and Shutdown
 
-**_grmgr_** runs as a asychronous background service to the application, meaning it runs as a goroutine communicating with the outside world via a number of channels. It would typically be started as part of the application initialisation and shutdown just before the application exits.  Just like a http server, **_grmgr_** listens for requests received on multiple channels and responds to them serially.  This maintains the intergrity of **_grmgr_** state data as all messages are handled in sequentially.
+**_grmgr_** runs as a asychronous background service to the application, meaning it runs as a goroutine communicating with the outside world via a number of channels. It would typically be started as part of the application initialisation and shutdown just before the application exits.  Just like a http server, **_grmgr_** listens for requests received on multiple channels and responds to them serially.  This maintains the intergrity of **_grmgr_** state data.
 
 A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts a Context and two WaitGroup instances.
 
@@ -83,7 +83,7 @@ A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts
 
 ```
 
-All communication with the **_grmgr_** service is via channels which have been encapsulated in all **_grmgr_** method calls. This means the developer never needs to explicitly communicate with any channel associated with grmgr. For example, the **_Control()_** method implements the throttle feature (see next section) and it encapsulates all the necessary channel communication. 
+All communication with the **_grmgr_** service is via channels which have been encapsulated in all **_grmgr_** method calls. This means the developer never needs to explicitly communicate with any channel associated with grmgr. For example, the **_Control()_** method implements the throttle feature (see next section) and it encapsulates all the necessary channel communications. 
 
 ```
 	func (l Limiter) Control() {
