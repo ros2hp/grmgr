@@ -1,4 +1,4 @@
-# grmgr - goroutine manager
+# grmgr - GoRoutine ManaGeR
 
 ## Concurrent Programming and grmgr?
  
