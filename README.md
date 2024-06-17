@@ -50,19 +50,19 @@ Using no more than a counter and a channel, the above code has stabilised the pr
 
 **grmgr** takes **dop** management to the next level however, enabling the  **dop**  to dynamically increase or decrease under the influence of some external event and enable your application to dynamically scale to suite the prevailing system resources.
 
-## Auto-Scaling an Application using grmgr Dynamic Throttling
+## Auto-Scaling an Application using grmgr
 
-As mentioned, **_grmgr_** has the ability to **_dynamic throttle_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application or system scaling event. The ability to scale an application dynamically in real-time represents a powerful application management capability permitting an application's resource consumption to be aligned  with other applications running on the server. 
+As mentioned, **_grmgr_** has the ability to **_dynamically throttle_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application or system scaling event. The ability to scale an application dynamically in real-time represents a powerful application management capability permitting an application's resource consumption to be aligned with other applications running on the server. 
 
-**_grmgr_** has no hooks into system monitors that might be used to trigger scale up or down events, however for applications running in the cloud all that is required is to identify the relevant cloud service and engage with its API. In the case of AWS for example, *_grmgr_**  would only need to implement a single API from the SNS service which would give it the ability to respond to CloudWatch scaling alerts. Very easy. 
+**_grmgr_** has no hooks into system monitors that might be used to trigger scale up or down events, however for applications running in the cloud all that is required is to identify the relevant cloud service and engage with its API. In the case of AWS for example, a single API setup in the SNS service is all that is required to get grmgr to respond to CloudWatch scaling alerts. Very easy. 
 
-**_grmgr_** can also send regular **_dop_** status reports to an "application dashboard". In fact **_grmgr_** has its own internal **_dop_** monitor for each parallel component which is persisted to a table in **_Dynamodb_** every few seconds.
+**_grmgr_** can also send regular **_dop_** status reports to an "application dashboard". In fact **_grmgr_** has its own internal **_dop_** monitor for each parallel component that is persisted to a table in **_Dynamodb_** every five seconds.
 
-Scaling events are sent to **_grmgr_** on a dedicated channel. The contents of the message includes the name of the parallel component and the type of scaling event, either a scalar  **_dop_* value to attain as quickly as possible or the name of a predefined scaling up or down profile.  If the message only contains a scaling event then all parallel components managed by  **_grmgr_** will be affected.
+Scaling events are sent to **_grmgr_** on dedicated channels. The contents of the message includes the name of the parallel component and the type of scaling event, either a specific  **_dop_* value or the name of a predefined scaling up or down profile.  If the message only contains the later, then all parallel components managed by  **_grmgr_** will be affected.
 
 ## **_grmgr_** Startup and Shutdown
 
-**_grmgr_** runs as a "asychronous background service" to the application, meaning it runs as a goroutine communicating with the outside world via a number of channels. It would typically be started as part of the application initialisation and shutdown just before the application exits.  Just like a http server, **_grmgr_** listens for requests received on multiple channels and responds to them serially.  This maintains the intergrity of **_grmgr_** state data as it handles requests from multiple parallel components and external systems concurrently.
+**_grmgr_** runs as a asychronous background service to the application, meaning it runs as a goroutine communicating with the outside world via a number of channels. It would typically be started as part of the application initialisation and shutdown just before the application exits.  Just like a http server, **_grmgr_** listens for requests received on multiple channels and responds to them serially.  This maintains the intergrity of **_grmgr_** state data as all messages are handled in sequentially.
 
 A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts a Context and two WaitGroup instances.
 
@@ -70,41 +70,41 @@ A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts
 ```
 	var wpStart, wpEnd sync.WaitGroup       // create a pair of WaitGroups instances, that are used
 						// to synchronise the main program with the startup of each service. 
-
-	wpStart.Add(?)                         	// ? represents the number of services being started
-	wpEnd.Add(?)				// one of which will be grmgr.
+	wpStart.Add(1)                         	
+	wpEnd.Add(1)				
         . . .
-	ctx, cancel := context.WithCancel(context.Background())    // create a context. Used to terminate the grmgr service
+	ctx, cancel := context.WithCancel(context.Background())   
 
- 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd)  		   // start grmgr
+ 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd) // start grmgr
         . . .
 	wpStart.Wait()                          // wait for all servies to start.
+        . . .
+	cancel()                                // shutdown grmgr using cancel() from context  
 
 ```
 
-
-To shutdown the service execute the cancel function generated using the **_WithCancel_** method used to create the context that was passed into the **_PowerOn()_**.
-
+All communication with the **_grmgr_** service is via channels which have been encapsulated in all **_grmgr_** method calls. This means the developer never needs to explicitly communicate with any channel associated with grmgr. For example, the **_Control()_** method implements the throttle feature (see next section) and it encapsulates all the necessary channel communication. 
 
 ```
-	cancel() 
+	func (l Limiter) Control() {
+		rAskCh <- l.r
+		<-l.ch
+	}
 ```
 
-All communication with the **_grmgr_** service is via channels which have been encapsulated into all **_grmgr_** method calls. This means the developer never explicitly communicates with a channel.   
 
+## Using grmgr to Auto-scale a Parallel Component
 
-## Using grmgr to Manage a Parallel Component
-
-The code example below has introduced **_grmgr_** to the example from Section 1. Note the lack of counter and channel as both have been encapsulated into **_grmgr_**.
+The code below has refactored the example from Section 1 with **_grmgr_**. Note the counter variable and channel have been removed as these features are encapsulated in **_grmgr_**.
 
 
 ```
 	. . .
 	throttleDP := grmgr.New("data-propagation", 10)  // create a throttle with dop 10
 	
-	for node := range ch {                     
+	for node := range ch {                          // parallel component loop
 	
-		throttleDP.Control()               	// wait for a response from grmgr
+		throttleDP.Control()               	// blocking call to grmgr
 				
 		go processDP(throttleDP, node)      
 
@@ -118,16 +118,9 @@ The code example below has introduced **_grmgr_** to the example from Section 1.
 
 ```
 
-The **_New()_** function will create a throttle, which accepts both a name, which must be unique across all throttles used in the application, and a **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call, meaning, it will wait for a response from the **_grmgr_** service before continuing.  **_grmgr_** will respond immediately when the number of running **_processDP_** is less than or equal to the **_dop_** defined in New(). If the number is greater than the **_dop_**  **_grmgr_** will not respond until one of the **_processDP_** has finished preventing another instantiate of the function. In this way **_grmgr_** constraints the number of concurrent **_goroutines_** from exceeding the **_dop_**. 
+The **_New()_** function will create a grmgr throttle, which accepts both a name, which must be unique across all parallel components used in the application, and a maximum **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call and will wait for a response from the **_grmgr_** service before continuing.  **_grmgr_** will respond immediately when the number of running **_processDP_** is less than or equal to the **_dop_** defined in New(). If the number is equal to the **_dop_**  **_grmgr_** will not respond and wait until one of the **_processDP_** has finished. In this way **_grmgr_** constraints the number of concurrent **_goroutines_** from exceeding the **_dop_**. 
 
-The code behind the Control() method illustrates the encapsulated channel communicate with the **_grmgr_** service. 
 
-```
-	func (l Limiter) Control() {
-		rAskCh <- l.r
-		<-l.ch
-	}
-```
 
  A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). In this case it will block and wait for all **_processDP_** goroutines that are still running to finish.
 
