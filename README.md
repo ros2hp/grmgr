@@ -2,7 +2,7 @@
 
 ## Concurrent Programming and grmgr?
  
-There are two distinct patterns in concurrent programming, both of which are readily implemented using Go's CSP (Communicating Sequential Processes) features, **_goroutines_** and **_channels_**. The first pattern is the **_process pipeline_**, which splits some processing logic into smaller units and deploys each unit as a goroutine linked together by channels to form a processing pipeline. Data is passed from one goroutine to the next goroutine via their associated channel until the data exits the pipeline in its fully processed state. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of concurrent goroutines each performing the identical processing logic. The number of **_goroutines_** that are concurrently running is a measure of the components parallelism, termed the **_degree of parallelism_** (dop) of the component. This is usually constrained to not exceed some maximum value to safeguard the system resources. An application may consist of many components employing both forms of concurrent patterns as well as hybrids of each e.g. pipeline consisting of steps that use the parallel pattern to increase throughput. Both patterns enable a Go application to scale across multiple cores/cpus.  
+Go's CSP (Communicating Sequential Processes) features, **_goroutines_** and **_channels_**, can effortlessly implement the two distinct concurrent programming design patterns. The first design pattern is the **_process pipeline_**, which splits some processing logic into smaller units and deploys each unit as a goroutine linked together by channels to form a processing pipeline. Data is passed from one goroutine to the next goroutine via their associated channel until the data exits the pipeline in its fully processed state. The other pattern is **_parallel_concurrency_** which splits the data, rather than the processing logic, across a pool of concurrent goroutines each performing the identical processing logic. The number of **_goroutines_** that are concurrently running is a measure of the components parallelism, termed the **_degree of parallelism_** (dop) of the component. This is usually constrained to not exceed some maximum value to safeguard the system resources. An application may consist of many components employing both forms of concurrent patterns as well as hybrids of each e.g. pipeline consisting of steps that use the parallel pattern to increase throughput. Both patterns enable a Go application to scale across multiple cores/cpus.  
 
 **_grmgr_** is not concerned with pipelines, however it provides the parallel processing pattern with a throttle that can dynamically adjust, in realtime, the degree of parallelism of each parallel component from zero to a configured maximum value. For example, **_grmgr_** can enable a paralle component to maintain a maximum **_dop_** of 20 and then respond to some external event, such as a CPU overload event, by reducing the **_dop_** by some margin, until the CPU overload event has passed and the **_dop_** can then return back to its original value using some predefined profile of increments. 
 
@@ -27,18 +27,23 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 
 ```
 	. . .
-	const MAX_CONCURRENT = 10              // throttle parallelTask to a maximum ot 100 concurrent instances
-	var channel = make(chan,message,MAX_CONCURRENT)   // channel to send back finish message
+ 	// throttle parallelTask to a maximum ot 100 concurrent instances
+	const MAX_CONCURRENT = 10
+
+	// channel to send back finish message            
+	var channel = make(chan,message,MAX_CONCURRENT)   
 	task_counter := 0                 
 
 	for node := range channel {
 
-		go parallelTask(node, channel)  // instantiate parallelTask as a goroutine. Pass in the channel.
+		// instantiate parallelTask as a goroutine. Pass in the channel
+		go parallelTask(node, channel)  .
 		task_counter++
 
 		if task_counter == MAX_CONCURRENT {
 
-			<-channel               // block and wait for a finish message from any one of the running parallelTask's
+			// block and wait for a finish message
+			<-channel               
 			task_counter--
 		}
 	}
@@ -68,18 +73,21 @@ A **_grmgr_** service is started using the **_PowerOn()_** method, which accepts
 
 
 ```
-	var wpStart, wpEnd sync.WaitGroup       // create a pair of WaitGroups instances, that are used
-						// to synchronise the main program with the startup of each service. 
+	// WaitGroups to synchronise main with each service.
+	var wpStart, wpEnd sync.WaitGroup 
 	wpStart.Add(1)                         	
 	wpEnd.Add(1)				
         . . .
 	ctx, cancel := context.WithCancel(context.Background())   
 
- 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd) // start grmgr
+	// start grmgr
+ 	go grmgr.PowerOn(ctx, &wpStart, &wpEnd) 
         . . .
-	wpStart.Wait()                          // wait for all servies to start.
+	// wait for all servies to start
+	wpStart.Wait()                          .
         . . .
-	cancel()                                // shutdown grmgr using cancel() from context  
+	// shutdown grmgr using cancel() from context 
+	cancel()                                 
 
 ```
 
@@ -100,21 +108,23 @@ The code below has refactored the example from Section 1 with **_grmgr_**. Note 
 
 ```
 	. . .
-	throttleDP := grmgr.New("data-propagation", 10)  // create a throttle with dop 10
+	// create a throttle with a DOP value of 10
+	throttleDP := grmgr.New("data-propagation", 10)  
 	
-	for node := range ch {                          // parallel component loop
-	
-		throttleDP.Control()               	// blocking call to grmgr
+	for node := range ch {                          
+
+		// blocking call to grmgr
+		throttleDP.Control()               	
 				
 		go processDP(throttleDP, node)      
 
 	}
-
-	throttleDP.Wait()                          	// wait for all parallelDP's to finish
+	// wait for all parallelDP's to finish
+	throttleDP.Wait()                          	
 
 	. . .
-	
-	throttle.Delete()                          	// delete the throttle
+	// delete the throttle
+	throttle.Delete()                          	
 
 ```
 
