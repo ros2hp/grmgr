@@ -31,21 +31,16 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 	const MAX_CONCURRENT = 10
 
 	// channel to send back finish message            
-	var channel = make(chan,message,MAX_CONCURRENT)   
-	task_counter := 0                 
+	var throttle = make(chan,struct{},MAX_CONCURRENT)                 
 
 	for node := range channel {
 
+		throttle <- struct{}{}
+
 		// instantiate parallelTask as a goroutine. Pass in the channel
 		go parallelTask(node, channel)  .
-		task_counter++
 
-		if task_counter == MAX_CONCURRENT {
-
-			// block and wait for a finish message
-			<-channel               
-			task_counter--
-		}
+		<-throttle
 	}
 	 . . .
 
