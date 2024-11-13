@@ -118,7 +118,7 @@ The code below has refactored the example from Section 1 with **_grmgr_**. Note 
 
 	. . .
 	// delete the throttle
-	throttle.Delete()                          	
+	throttleDP.Delete()                          	
 
 ```
 
