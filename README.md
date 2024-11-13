@@ -36,15 +36,16 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 
 		throttle <- struct{}{}
 
-		go parallelTask()
+		go { parallelTask()
 
-		<-throttle
+		   <-throttle
+                   }
 	}
 	 . . .
 
 ```
 
-Using nothing more than a buffered channel, the above code has constrained the program's **dop** to never exceed 10. 
+Using nothing more than a buffered channel, the above code has constrained the program's **dop** to not exceed 10. 
 
 **grmgr** takes **dop** management to the next level, enabling the  **dop**  to be dynamically increased or decreased permitting your application to automatically scale to meet fluctuating compute resources. 
 
@@ -107,7 +108,7 @@ The code below has refactored the example from Section 1 with **_grmgr_**. Note 
 	for node := range ch {                          
 
 		// blocking call to grmgr
-		throttleDP.Control()               	
+		throttleDP.Control(node)               	
 				
 		go processDP(throttleDP, node)      
 
