@@ -145,7 +145,7 @@ The function must accept a grmgr throttle instance and include the following lin
 
 
 ```
-	defer limiterDP.Done()
+	defer throttlerDP.Done()
 ```
 
 The Done() method will notify grmgr that the goroutine has finished.
