@@ -110,7 +110,9 @@ The code below has refactored the example from Section 1 with **_grmgr_**. Note 
 		// blocking call to grmgr
 		throttleDP.Control(node)               	
 				
-		go processDP(throttleDP, node)      
+		go { processDP( node)
+		     throttleDP.Done()
+                   }    
 
 	}
 	// wait for all parallelDP's to finish
@@ -122,11 +124,9 @@ The code below has refactored the example from Section 1 with **_grmgr_**. Note 
 
 ```
 
-The **_New()_** function will create a grmgr throttle, which accepts both a name, which must be unique across all parallel components used in the application, and a maximum **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call and will wait for a response from the **_grmgr_** service before continuing.  **_grmgr_** will respond immediately when the number of running **_processDP_** is less than or equal to the **_dop_** defined in New(). If the number is equal to the **_dop_**  **_grmgr_** will not respond and wait until one of the **_processDP_** has finished. In this way **_grmgr_** constraints the number of concurrent **_goroutines_** from exceeding the **_dop_**. 
+The **_New()_** function will create a grmgr throttle, which accepts both a name, which must be unique across all parallel components used in the application, and a maximum **_dop_** value. The throttling capability is handled by the **_Control()_** method. It is a blocking call and will wait for a response from the **_grmgr_** service before continuing.  The throttle's Done() method notifies **_grmgr_** that a gortouines has finished. In this way **_grmgr_** constraints the number of concurrent **_goroutines_** from exceeding the **_dop_**. 
 
-
-
- A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). In this case it will block and wait for all **_processDP_** goroutines that are still running to finish.
+A Throttle also comes equipped with a Wait() method, which emulates Go's Standard Library, sync.Wait(). In this case it will block and wait for all **_processDP_** goroutines that are still running to finish.
 
 ```
 	throttleDP.Wait() 
@@ -138,19 +138,6 @@ When a Throttle is no longer needed it should be deleted using:
 ```
 	throttleDP.Delete()
 ```
-
-## Modifying your parallel function to work with grmgr.
-
-Add the line of code, "defer **grmgr-instance**.Done()", to the top of the function to be managed by **_grmgr_**.
-
-In the case of the above example, the **processDP** function would include the line:
-
-```
-	defer throttleDP.Done()
-```
-
-The Done() method will notify grmgr that the goroutine has finished.
-
 
 
 To configure a logger for __**_grrmgr_**__ use the following:
