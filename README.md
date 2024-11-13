@@ -47,13 +47,13 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 
 Using nothing more than a buffered channel, the above code has constrained the program's **dop** to not exceed 10. 
 
-**grmgr** takes **dop** management to the next level, enabling the  **dop**  to be dynamically increased or decreased permitting your application to automatically scale to meet fluctuating compute resources. 
+**grmgr** takes **dop** management to the next level however, enabling the  **dop**  to be dynamically increased or decreased.
 
 ## Auto-Scaling an Application using grmgr
 
-As mentioned, **_grmgr_** has the ability to **_dynamically throttle_** each parallel component in real-time while the application is running. It can do this by changing the **_dop_** of each parallel component, up or down, usually in response to some application or system scaling event. The ability to scale an application dynamically in real-time represents a powerful application management capability permitting an application's resource consumption to be aligned with other applications running on the server. 
+**_grmgr_** has the ability to **_dynamically throttle_** each parallel component in your program in real-time. It does this by changing the **_dop_** of each parallel component, up or down, usually in response to some application or system resource monitoring event. The ability to scale an application dynamically like this represents a powerful application management capability permitting a programs resource consumption to be aligned with other applications running on the server or servers. 
 
-**_grmgr_** has no hooks into system monitors that might be used to trigger scale up or down events, however for applications running in the cloud all that is required is to identify the relevant cloud service and engage with its API. In the case of AWS for example, a single API setup in the SNS service is all that is required to get grmgr to respond to CloudWatch scaling alerts. Very easy. 
+Currently **_grmgr_** has no hooks into system monitors that might be used to trigger scale up or down events, however for applications running in the cloud all that is required is to identify the relevant cloud service and engage with its API. In the case of AWS for example, a single API setup in the SNS service is all that is required to get grmgr to respond to CloudWatch scaling alerts. 
 
 **_grmgr_** can also send regular **_dop_** status reports to an "application dashboard". In fact **_grmgr_** has its own internal **_dop_** monitor for each parallel component that is persisted to a table in **_Dynamodb_** every five seconds.
 
