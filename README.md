@@ -51,7 +51,7 @@ Using nothing more than a buffered channel, the above code has constrained the p
 
 ## Auto-Scaling an Application using grmgr
 
-**_grmgr_** has the ability to **_dynamically throttle_** each parallel component in your program in real-time. It does this by changing the **_dop_** of each parallel component, up or down, usually in response to some application or system resource monitoring event. The ability to scale an application dynamically like this represents a powerful application management capability permitting a programs resource consumption to be aligned with other applications running on the server or servers. 
+**_grmgr_** runs as a service asyncrhonous to your program which permits the **dop** of each parallel component to be adjusted up or down depending on some external event.   The ability to scale an application dynamically like this represents a powerful application management capability permitting a programs resource consumption to be aligned with other applications running on the server or servers. 
 
 Currently **_grmgr_** has no hooks into system monitors that might be used to trigger scale up or down events, however for applications running in the cloud all that is required is to identify the relevant cloud service and engage with its API. In the case of AWS for example, a single API setup in the SNS service is all that is required to get grmgr to respond to CloudWatch scaling alerts. 
 
