@@ -108,7 +108,7 @@ The code below has refactored the example from Section 1 with **_grmgr_**. Note 
 	for node := range ch {                          
 
 		// blocking call to grmgr
-		throttleDP.Control(node)               	
+		throttleDP.Control()               	
 				
 		go { processDP( node)
 		     throttleDP.Done()
