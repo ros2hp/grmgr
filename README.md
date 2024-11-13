@@ -141,7 +141,7 @@ When a Throttle is no longer needed it should be deleted using:
 
 ## Modifying your parallel function to work with grmgr.
 
-Add the line of code, "defer <grmgr-instance>.Done()", to the top of the function to be managed by **_grmgr_**.
+Add the line of code, "defer **grmgr-instance**.Done()", to the top of the function to be managed by **_grmgr_**.
 
 In the case of the above example, the **processDP** function would include the line:
 
