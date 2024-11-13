@@ -37,8 +37,7 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 
 		throttle <- struct{}{}
 
-		// instantiate parallelTask as a goroutine. Pass in the channel
-		go parallelTask(node, channel)  .
+		go parallelTask(node)
 
 		<-throttle
 	}
@@ -46,7 +45,7 @@ A relatively easy fix to the above is to constrain the number of **_parallelTask
 
 ```
 
-Using nothing more than a buffered channel, the above code has stabilised the program by constraining the number of concurrent **_parallelTasks_** to never exceed 10. 
+Using nothing more than a buffered channel, the above code has constrained the program's **dop** to never exceed 10. 
 
 **grmgr** takes **dop** management to the next level, enabling the  **dop**  to be dynamically increased or decreased permitting your application to automatically scale to meet fluctuating compute resources. 
 
