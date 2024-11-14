@@ -42,11 +42,12 @@ The number of concurrent tasks can be constrained using one of the following cod
                    }	
 	}
 
-	// not possible to wait for the remining tasks to finish in this design without introducing more code elements.
+	// not possible to wait for the remaining tasks to finish in this design
+        // without introducing more code elements.
 
 ```
 
-An alternative design employees the traditional "counter" and a non-buffered channel in incombination to enforce the **dop**.
+The following alternative design employees the traditional "counter" variable and a non-buffered channel that in incombination enforces the **dop**.
 
 
 ```
