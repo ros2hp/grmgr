@@ -10,7 +10,7 @@ Go's CSP (Communicating Sequential Processes) features, **_goroutines_** and **_
 
 ## Parallel Processing Examples in Go.
 
-The code fragment below presents a naive implementation of the parallel processing pattern. You will note there is no attempt to limit the number of concurrent **_parallelTask_** that are instantiated. The **_dop_** at any moment in time is dependent on two factors, one, the number of entries (nodes) queued in the channel buffer and secondly, how long the parallelTask operations takes to run. Consequently the program may generate a widely unpredicatable load on the server which is not good from the perspective of other running programs.
+The code fragment below presents a naive implementation of the parallel processing pattern. You will note there is no attempt to limit the number of concurrent **_parallelTask_** that are instantiated. The **_dop_** at any moment in time is dependent on two factors, one, the number of entries (nodes) queued in the channel buffer and secondly, how long the parallelTask operations takes to run. Consequently the program may generate a widely unpredicatable load on the server which is termed as anti-social behaviour with respect to other programs running on the server.
 
 ```	. . .
 	var channel = make(chan,node)
@@ -23,31 +23,67 @@ The code fragment below presents a naive implementation of the parallel processi
 	. . .
 ```
 
-A relatively easy fix to the above is to constrain the number of **_parallelTask_** that can run concurrently. This is achieved by adding a "counter", to count the number of instantiated goroutines, and a **_channel_**, to synchronise the completion of a **_parallelTask_** with the main program permiting another task to run after some threshold of concurrent tasks has been satisfied. 
+The number of concurrent tasks can be constrained using one of the following code patterns. The first employees a buffered channel which has the buffer size set to the desired **dop**.
 
 ```
 	. . .
- 	// throttle parallelTask to a maximum ot 10 concurrent instances
-	const MAX_CONCURRENT = 10
+ 	// execute upto 10 concurrent parallelTask
+
+	const DOP = 10
        
-	var throttle = make(chan,struct{},MAX_CONCURRENT)                 
+	var throttle = make(chan,struct{},DOP)                 
 
 	for node := range channel {
 
 		throttle <- struct{}{}
 
-		go { parallelTask()
-
-		   <-throttle
-                   }
+		go { parallelTask(node)
+		    <-throttle 
+                   }	
 	}
-	 . . .
+
+	// not possible to wait for the remining tasks to finish in this design without introducing more code elements.
 
 ```
 
-Using nothing more than a buffered channel, the above code has constrained the program's **dop** to not exceed 10. 
+An alternative design employees the traditional "counter" and a non-buffered channel in incombination to enforce the **dop**.
 
-**grmgr** takes **dop** management to the next level however, enabling the  **dop**  to be dynamically increased or decreased.
+
+```
+
+  	// execute upto 10 concurrent parallelTask
+
+	var dop= 10  
+        var counter = 0
+	
+	var throttle = make(chan,struct{})                 
+
+	for node := range channel {
+
+		go { parallelTask(node)
+
+		     throttle <- struct{}{}
+                   }
+		   
+                counter++
+     		
+       		if counter == dop {
+	 		<-throttle
+    			counter--
+	 	}
+	}
+ 
+	// wait for remaining tasks to finish
+ 	while counter > 0 {
+	      <-throttle
+    	      counter--
+  	}
+	. . .
+
+```       
+The first design is simpler of course and is suitable for most use cases but it is less flexible as the **dop** is fixed to the size of the channel buffer which cannot be modified once the channel is instantiated.  This design also has a potential issue when the loop is finished as its not possible to wait for the remaining concurrent tasks to finish before the program terminates without introducing more code elements. The second example resolves both of these issues. The dop is now a variable which can be modified while the program is executing and its now possible to wait for the ramining tasks to finish after the loop is finished using the existing components.  **_grmgr_** employees the second code pattern encapsulating both the counter and channels into a design that executes asynchronously to the main program.
+
+In this way **grmgr** takes **dop** management to the next level enabling the  **dop**  to be dynamically adjusted in realtime.
 
 ## Auto-Scaling an Application using grmgr
 
